@@ -163,6 +163,8 @@ def oper_commands(my_ips):
                         lldps = LLDPNeighborTable(jdev)
                         lldps.get()
                         print(lldps.values())
+                        print("\n**************\n")
+                        print(lldps.items())
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
