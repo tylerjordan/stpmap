@@ -11,6 +11,7 @@ import multiprocessing
 from jnpr.junos import Device
 from jnpr.junos.utils.sw import SW
 from jnpr.junos.exception import *
+from jnpr.junos.op.lldp import LLDPNeighborTable
 from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
 from os.path import join
@@ -159,8 +160,8 @@ def oper_commands(my_ips):
                     loop += 1
                     stdout.write("-> Connecting to " + ip + " ... ")
                     with Device(host=ip, user=username, password=password) as jdev:
-                        rsp = jdev.rpc.get_lldp_neighbors_information()
-                        print(etree.tostring(rsp, encoding='unicode'))
+                        lldps = LLDPNeighborTable(jdev)
+                        print(lldps.get())
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
