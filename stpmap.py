@@ -12,6 +12,7 @@ from jnpr.junos import Device
 from jnpr.junos.utils.sw import SW
 from jnpr.junos.exception import *
 from jnpr.junos.op.lldp import LLDPNeighborTable
+from jnpr.junos.op.stpbridge import STPBridgeTable
 from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
 from os.path import join
@@ -160,11 +161,11 @@ def oper_commands(my_ips):
                     loop += 1
                     stdout.write("-> Connecting to " + ip + " ... ")
                     with Device(host=ip, user=username, password=password) as jdev:
-                        lldps = LLDPNeighborTable(jdev)
-                        lldps.get()
-                        print(lldps.values())
+                        stpbridge = STPBridgeTable(jdev)
+                        stpbridge.get()
+                        print(stpbridge.values())
                         print("\n**************\n")
-                        print(lldps.items())
+                        print(stpbridge.items())
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
