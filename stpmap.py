@@ -161,7 +161,8 @@ def oper_commands(my_ips):
                     stdout.write("-> Connecting to " + ip + " ... ")
                     with Device(host=ip, user=username, password=password) as jdev:
                         lldps = LLDPNeighborTable(jdev)
-                        print(lldps.get())
+                        lldps.get()
+                        print(lldps.values())
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
