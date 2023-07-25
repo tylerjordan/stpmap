@@ -159,7 +159,7 @@ def oper_commands(my_ips):
                     loop += 1
                     stdout.write("-> Connecting to " + ip + " ... ")
                     with Device(host=ip, user=username, password=password) as jdev:
-                        rsp = jdev.rpc.get_interface_information()
+                        rsp = jdev.rpc.get_lldp_neighbors_information()
                         print(etree.tostring(rsp, encoding='unicode'))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
