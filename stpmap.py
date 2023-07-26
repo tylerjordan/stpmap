@@ -179,7 +179,8 @@ def oper_commands(my_ips):
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
                         for local_int in lldpneigh:
-                            print("{}: {}: {}:\n".format(local_int.local_int, local_int.remote_chassis_id,
+                            if local_int.local_int == 'ge-0/1/0' or local_int.local_int == 'ge-0/0/8':
+                                print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
                                                              local_int.remote_sysname))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
