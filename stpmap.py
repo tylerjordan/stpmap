@@ -13,7 +13,7 @@ from jnpr.junos.utils.sw import SW
 from jnpr.junos.exception import *
 from jnpr.junos.op.lldp import LLDPNeighborTable
 from jnpr.junos.op.stpbridge import STPBridgeTable
-from jnpr.junos.op.vlaninfo import VlanTable
+from jnpr.junos.op.vlan import VlanTable
 from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
 from os.path import join
