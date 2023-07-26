@@ -181,6 +181,7 @@ def oper_commands(my_ips):
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
                         for local_int in lldpneigh:
+                            print(members)
                             if type(members) == list:
                                 for item in members:
                                     if local_int.local_int == item.split(".")[0]:
