@@ -146,35 +146,29 @@ def oper_commands(my_ips):
         my_ips = chooseDevices(iplist_dir)
 
     if my_ips:
-        command_list = []
-        print("\n" + "*" * 110 + "\n")
-        command_list = getMultiInputAnswer("Enter a command to run")
-
         if getTFAnswer("Continue with operational requests?"):
             # Loop over commands and devices
-            devs_unreachable = []
-            devs_no_output = []
-            devs_with_output = []
-            loop = 0
             try:
                 for ip in my_ips:
-                    command_output = ""
-                    loop += 1
                     stdout.write("-> Connecting to " + ip + " ... ")
                     members = []
                     with Device(host=ip, user=username, password=password) as jdev:
+                        vlan_list = []
                         print("\n******* VLAN INFO ******\n")
                         vlaninfo = VlanTable(jdev)
                         vlaninfo.get()
                         for name in vlaninfo:
-                            if name.tag == '111':
+                            vlan_list.append(name.tag)
+                        selected_vlan = getOptionAnswerIndex("Choose a VLAN", vlan_list)
+                        for name in vlaninfo:
+                            if name.tag == selected_vlan:
                                 print("{}: {}: {}\n".format(name.name, name.tag, name.members))
                                 members = name.members
                         print("******* STP BRIDGE INFO ******\n")
                         stpbridge = STPBridgeTable(jdev)
                         stpbridge.get()
                         for vlan_id in stpbridge:
-                            if vlan_id.vlan_id == '111':
+                            if vlan_id.vlan_id == selected_vlan:
                                 print("{}: {}: {}: {}\n".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
                                                           vlan_id.local_bridge_mac, vlan_id.root_port))
                         print("******* LLDP NEIGHBORS ******\n")
