@@ -163,9 +163,11 @@ def oper_commands(my_ips):
                     with Device(host=ip, user=username, password=password) as jdev:
                         stpbridge = STPBridgeTable(jdev)
                         stpbridge.get()
-                        print(stpbridge.values())
-                        print("\n**************\n")
                         print(stpbridge.items())
+                        print("\n**************\n")
+                        lldpneigh = LLDPNeighborTable(jdev)
+                        lldpneigh.get()
+                        print(lldpneigh.items())
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
