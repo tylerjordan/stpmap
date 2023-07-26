@@ -13,6 +13,7 @@ from jnpr.junos.utils.sw import SW
 from jnpr.junos.exception import *
 from jnpr.junos.op.lldp import LLDPNeighborTable
 from jnpr.junos.op.stpbridge import STPBridgeTable
+from jnpr.junos.op.vlaninfo import VlanTable
 from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
 from os.path import join
@@ -168,6 +169,10 @@ def oper_commands(my_ips):
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
                         print(lldpneigh.items())
+                        print("\n**************\n")
+                        vlaninfo = VlanTable(jdev)
+                        vlaninfo.get()
+                        print(vlaninfo.items())
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
