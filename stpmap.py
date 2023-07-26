@@ -172,8 +172,8 @@ def oper_commands(my_ips):
                         print("\n**************\n")
                         vlaninfo = VlanTable(jdev)
                         vlaninfo.get()
-                        if 'vlan-111' in vlaninfo:
-                            print(vlaninfo.values())
+                        for name in vlaninfo:
+                            print("{}: {}".format(name.name, name.tag))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
