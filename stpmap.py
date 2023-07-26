@@ -164,6 +164,10 @@ def oper_commands(my_ips):
                     with Device(host=ip, user=username, password=password) as jdev:
                         stpbridge = STPBridgeTable(jdev)
                         stpbridge.get()
+                        for vlan_id in stpbridge:
+                            if vlan_id.vlan_id == '111':
+                                print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+                                                          vlan_id.local_bridge_priority, vlan_id.root_port))
                         print(stpbridge.items())
                         print("\n**************\n")
                         lldpneigh = LLDPNeighborTable(jdev)
