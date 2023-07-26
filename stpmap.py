@@ -160,6 +160,7 @@ def oper_commands(my_ips):
                         for name in vlaninfo:
                             vlan_list.append(name.tag)
                         selected_vlan = getOptionAnswerIndex("Choose a VLAN", vlan_list)
+                        print("Selected VLAN: {}".format(selected_vlan))
                         for name in vlaninfo:
                             if name.tag == selected_vlan:
                                 print("{}: {}: {}\n".format(name.name, name.tag, name.members))
