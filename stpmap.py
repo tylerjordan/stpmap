@@ -187,7 +187,7 @@ def oper_commands(my_ips):
                                         print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
                                                                     local_int.remote_sysname))
                             else:
-                                if local_int.local_int == members:
+                                if local_int.local_int == members[0]:
                                     print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
                                                                 local_int.remote_sysname))
             except KeyboardInterrupt:
