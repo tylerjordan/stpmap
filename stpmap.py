@@ -161,6 +161,7 @@ def oper_commands(my_ips):
                     command_output = ""
                     loop += 1
                     stdout.write("-> Connecting to " + ip + " ... ")
+                    members = []
                     with Device(host=ip, user=username, password=password) as jdev:
                         print("\n******* VLAN INFO ******\n")
                         vlaninfo = VlanTable(jdev)
@@ -168,6 +169,7 @@ def oper_commands(my_ips):
                         for name in vlaninfo:
                             if name.tag == '111':
                                 print("{}: {}: {}\n".format(name.name, name.tag, name.members))
+                                members = name.members
                         print("******* STP BRIDGE INFO ******\n")
                         stpbridge = STPBridgeTable(jdev)
                         stpbridge.get()
@@ -179,9 +181,9 @@ def oper_commands(my_ips):
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
                         for local_int in lldpneigh:
-                            for item in name.members:
-                                print("Local Int: {}\n".format(local_int.local_int))
-                                print("Member Int: {}\n".format(item.split(".")[0]))
+                            for item in members:
+                                #print("Local Int: {}\n".format(local_int.local_int))
+                                #print("Member Int: {}\n".format(item.split(".")[0]))
                                 if local_int.local_int == item.split(".")[0]:
                                     print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
                                                                  local_int.remote_sysname))
