@@ -180,6 +180,8 @@ def oper_commands(my_ips):
                         lldpneigh.get()
                         for local_int in lldpneigh:
                             for item in name.members:
+                                print("Local Int: {}\n".format(local_int.local_int))
+                                print("Member Int: {}\n".format(item.split(".")[0]))
                                 if local_int.local_int == item.split(".")[0]:
                                     print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
                                                                  local_int.remote_sysname))
