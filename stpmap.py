@@ -181,12 +181,15 @@ def oper_commands(my_ips):
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
                         for local_int in lldpneigh:
-                            for item in members:
-                                print("Local Int: {}\n".format(local_int.local_int))
-                                print("Member Int: {}\n".format(item.split(".")[0]))
-                                if local_int.local_int == item.split(".")[0]:
+                            if type(members) == list:
+                                for item in members:
+                                    if local_int.local_int == item.split(".")[0]:
+                                        print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
+                                                                    local_int.remote_sysname))
+                            else:
+                                if local_int.local_int == members:
                                     print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
-                                                                 local_int.remote_sysname))
+                                                                local_int.remote_sysname))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
