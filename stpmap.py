@@ -162,22 +162,26 @@ def oper_commands(my_ips):
                     loop += 1
                     stdout.write("-> Connecting to " + ip + " ... ")
                     with Device(host=ip, user=username, password=password) as jdev:
-                        stpbridge = STPBridgeTable(jdev)
-                        stpbridge.get()
-                        for vlan_id in stpbridge:
-                            if vlan_id.vlan_id == '111':
-                                print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
-                                                          vlan_id.local_bridge_mac, vlan_id.root_port))
-                        print("\n**************\n")
-                        lldpneigh = LLDPNeighborTable(jdev)
-                        lldpneigh.get()
-                        print(lldpneigh.items())
-                        print("\n**************\n")
+                        print("\n******* VLAN INFO ******\n")
                         vlaninfo = VlanTable(jdev)
                         vlaninfo.get()
                         for name in vlaninfo:
                             if name.tag == '111':
-                                print("{}: {}: {}".format(name.name, name.tag, name.members))
+                                print("\n{}: {}: {}".format(name.name, name.tag, name.members))
+                        print("\n******* STP BRIDGE INFO ******\n")
+                        stpbridge = STPBridgeTable(jdev)
+                        stpbridge.get()
+                        for vlan_id in stpbridge:
+                            if vlan_id.vlan_id == '111':
+                                print("\n{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+                                                          vlan_id.local_bridge_mac, vlan_id.root_port))
+                        print("\n******* LLDP NEIGHBORS ******\n")
+                        lldpneigh = LLDPNeighborTable(jdev)
+                        lldpneigh.get()
+                        for local_int in lldpneigh:
+                            if local_int == 'ge-0/1/0' or local_int == 'ge-0/0/8':
+                                print("\n{}: {}: {}:".format(local_int.local_int, local_int.remote_chassis_id,
+                                                             local_int.remote_sysname))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
