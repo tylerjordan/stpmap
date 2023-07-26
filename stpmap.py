@@ -161,18 +161,19 @@ def oper_commands(my_ips):
                             vlan_list.append(name.tag)
                         selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
                         print("Selected VLAN: {}".format(selected_vlan))
+                        print("\n******* VLAN INFO ******")
                         for name in vlaninfo:
                             if name.tag == selected_vlan:
                                 print("{}: {}: {}".format(name.name, name.tag, name.members))
                                 members = name.members
-                        print("******* STP BRIDGE INFO ******\n")
+                        print("\n******* STP BRIDGE INFO ******")
                         stpbridge = STPBridgeTable(jdev)
                         stpbridge.get()
                         for vlan_id in stpbridge:
                             if vlan_id.vlan_id == selected_vlan:
                                 print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
                                                           vlan_id.local_bridge_mac, vlan_id.root_port))
-                        print("******* LLDP NEIGHBORS ******\n")
+                        print("\n******* LLDP NEIGHBORS ******")
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
                         for local_int in lldpneigh:
