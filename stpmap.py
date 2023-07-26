@@ -163,14 +163,14 @@ def oper_commands(my_ips):
                         print("Selected VLAN: {}".format(selected_vlan))
                         for name in vlaninfo:
                             if name.tag == selected_vlan:
-                                print("{}: {}: {}\n".format(name.name, name.tag, name.members))
+                                print("{}: {}: {}".format(name.name, name.tag, name.members))
                                 members = name.members
                         print("******* STP BRIDGE INFO ******\n")
                         stpbridge = STPBridgeTable(jdev)
                         stpbridge.get()
                         for vlan_id in stpbridge:
                             if vlan_id.vlan_id == selected_vlan:
-                                print("{}: {}: {}: {}\n".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+                                print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
                                                           vlan_id.local_bridge_mac, vlan_id.root_port))
                         print("******* LLDP NEIGHBORS ******\n")
                         lldpneigh = LLDPNeighborTable(jdev)
@@ -179,11 +179,11 @@ def oper_commands(my_ips):
                             if type(members) == list:
                                 for item in members:
                                     if local_int.local_int == item.split(".")[0]:
-                                        print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
+                                        print("{}: {}: {}".format(local_int.local_int, local_int.remote_chassis_id,
                                                                     local_int.remote_sysname))
                             else:
                                 if local_int.local_int == members.split(".")[0]:
-                                    print("{}: {}: {}\n".format(local_int.local_int, local_int.remote_chassis_id,
+                                    print("{}: {}: {}".format(local_int.local_int, local_int.remote_chassis_id,
                                                                 local_int.remote_sysname))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
