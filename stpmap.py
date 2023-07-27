@@ -178,7 +178,7 @@ def oper_commands(my_ips):
                         lldpneigh.get()
                         for local_i in lldpneigh:
                             if type(members) == list:
-                                for item in members:
+                                for item in remove_duplicates(members):
                                     if local_i.local_parent != "-" and local_i.local_parent == item.split(".")[0]:
                                         print("{}: {}: {}".format(local_i.local_parent, local_i.remote_chassis_id,
                                                                     local_i.remote_sysname))
