@@ -801,5 +801,12 @@ def ping(ip):
             return True
         except subprocess.CalledProcessError:
             return False
-
-# Import variables into config file
+# Clear out any duplicates from the provided list
+def remove_duplicates(alist):
+    nodup_list = []
+    for i in alist:
+        if i not in nodup_list:
+            nodup_list.append(i)
+        else:
+            print(i,end=' ')
+    return nodup_list
