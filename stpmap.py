@@ -184,6 +184,7 @@ def oper_commands(my_ips):
                                         print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
                                                                     local_i.remote_sysname))
                             else:
+                                print("Local Parent: {}".format(local_i.local_parent))
                                 if local_i.local_int == members.split(".")[0]:
                                     print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
                                                                 local_i.remote_sysname))
