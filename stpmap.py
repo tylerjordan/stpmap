@@ -179,6 +179,7 @@ def oper_commands(my_ips):
                         for local_i in lldpneigh:
                             if type(members) == list:
                                 for item in members:
+                                    print("Local Parent: {}".format(local_i.local_parent))
                                     if local_i.local_int == item.split(".")[0]:
                                         print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
                                                                     local_i.remote_sysname))
