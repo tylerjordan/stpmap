@@ -176,16 +176,16 @@ def oper_commands(my_ips):
                         print("\n******* LLDP NEIGHBORS ******")
                         lldpneigh = LLDPNeighborTable(jdev)
                         lldpneigh.get()
-                        for local_int in lldpneigh:
+                        for local_i in lldpneigh:
                             if type(members) == list:
                                 for item in members:
-                                    if local_int.local_int == item.split(".")[0]:
-                                        print("{}: {}: {}".format(local_int.local_int, local_int.remote_chassis_id,
-                                                                    local_int.remote_sysname))
+                                    if local_i.local_int == item.split(".")[0]:
+                                        print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
+                                                                    local_i.remote_sysname))
                             else:
-                                if local_int.local_int == members.split(".")[0]:
-                                    print("{}: {}: {}".format(local_int.local_int, local_int.remote_chassis_id,
-                                                                local_int.remote_sysname))
+                                if local_i.local_int == members.split(".")[0]:
+                                    print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
+                                                                local_i.remote_sysname))
             except KeyboardInterrupt:
                 print("Exiting Procedure...")
         else:
@@ -206,8 +206,7 @@ if __name__ == "__main__":
     password = getpass(prompt="\nEnter your password: ")
 
     # Define menu options
-    my_options = ['Execute Operational Commands', 'Execute Set Commands', 'Execute Template Commands',
-                  'Upgrade Junipers', 'Quit']
+    my_options = ['Scan Vlans', 'Quit']
     my_ips = []
 
     # Get menu selection
@@ -217,11 +216,5 @@ if __name__ == "__main__":
         answer = getOptionAnswerIndex('Make a Selection', my_options)
         if answer == "1":
             oper_commands(my_ips)
-        #elif answer == "2":
-        #    standard_commands(my_ips)
-        #elif answer == "3":
-        #    template_commands()
-        #elif answer == "4":
-        #    upgrade_menu()
-        elif answer == "5":
+        elif answer == "2":
             quit()
