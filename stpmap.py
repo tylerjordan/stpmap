@@ -170,9 +170,10 @@ def capture_vlan_info(selected_vlan, vlaninfo):
     print("Selected VLAN: {}".format(selected_vlan))
     print("\n******* VLAN INFO ******")
     for name in vlaninfo:
-        if name.tag == selected_vlan:
-            print("{}: {}: {}".format(name.name, name.tag, name.members))
-            members = name.members
+        print(name)
+        #if name.tag == selected_vlan:
+        #    print("{}: {}: {}".format(name.name, name.tag, name.members))
+        #    members = name.members
     exit()
     return members
 
