@@ -166,15 +166,19 @@ def create_timestamped_log(prefix, extension):
     return log_dir + prefix + now.strftime("%Y%m%d-%H%M") + "." + extension
 
 def capture_vlan_info(selected_vlan, vlaninfo):
-    members = []
+    vlan_dict = {}
     print("Selected VLAN: {}".format(selected_vlan))
     print("\n******* VLAN INFO ******")
     for name in vlaninfo:
-        print(name)
         if name.tag == selected_vlan:
             print("{}: {}: {}".format(name.name, name.tag, name.members))
-            members = name.members
-    return members
+            vlan_dict["name"] = name.name
+            vlan_dict["tag"] = name.tag
+            vlan_dict["members"].append(name.members)
+    print("DICT")
+    print(vlan_dict)
+    exit()
+    return vlan_dict
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
@@ -191,9 +195,8 @@ def oper_commands(my_ips):
                 members = []
                 with Device(host=ip, user=username, password=password) as jdev:
                     vlan_list = []
-                    print("\n******* VLAN INFO ******\n")
                     vlaninfo = VlanTable(jdev)
-                    #vlaninfo.get()
+                    vlaninfo.get()
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
