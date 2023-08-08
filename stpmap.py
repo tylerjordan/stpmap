@@ -199,12 +199,7 @@ def oper_commands(my_ips):
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    print("Selected VLAN: {}".format(selected_vlan))
-                    print("\n******* VLAN INFO ******")
-                    for name in vlaninfo:
-                        if name.tag == selected_vlan:
-                            print("{}: {}: {}".format(name.name, name.tag, name.members))
-                            members = name.members
+                    capture_vlan_info(selected_vlan, jdev)
                     print("\n******* STP BRIDGE INFO ******")
                     stpbridge = STPBridgeTable(jdev)
                     stpbridge.get()
