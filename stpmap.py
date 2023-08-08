@@ -22,7 +22,6 @@ from getpass import getpass
 from sys import stdout
 from lxml import etree
 
-
 # Global Variables
 credsCSV = ""
 username = ""
@@ -40,6 +39,34 @@ images_dir = ""
 system_slash = "/"   # This is the linux/mac slash format, windows format will be used in that case
 
 remote_path = "/var/tmp"
+
+dev_list = {
+    "SF-A": "132.32.255.206",
+    "SF-B": "132.32.255.207",
+    "CN1": "132.32.255.201",
+    "CN2": "132.32.255.202",
+    "CN3": "132.32.255.203",
+    "CN4": "132.32.255.204",
+    "CN5": "132.32.255.205"
+}
+
+env_dict = [
+    { "system_name": "CN3", "vlan_id": 281, "local_priority": 33049, "root_bridge": False, "root_port": "ge-0/0/5",
+      "root_sys": "CN2", "root_priority": 4377,
+      "downstream_ports": [ { "port": "ge-0/0/2", "sys": "CDN-475" }, { "port": "ge-0/0/1", "sys": "CDN-465" } ],
+      "edge_ports": [ "ge-0/0/3", "ge-0/0/6" ]
+    },
+    {"system_name": "CN2", "vlan_id": 281, "local_priority": 4377, "root_bridge": True, "root_port": None,
+     "root_sys": None, "root_priority": 4377,
+     "downstream_ports": [ { "port": "ge-0/0/5", "sys": "CN3"} ],
+     "edge_ports": [ None ]
+     },
+    {"system_name": "CDN-475", "vlan_id": 281, "local_priority": 33049, "root_bridge": False, "root_port": "ge-0/0/2",
+     "root_sys": "CN3", "root_priority": 4377,
+     "downstream_ports": [ None ],
+     "edge_ports": ["ge-0/0/3"]
+     }
+]
 
 # Function to determine running enviornment (Windows/Linux/Mac) and use correct path syntax
 def detect_env():
@@ -138,6 +165,19 @@ def create_timestamped_log(prefix, extension):
     now = datetime.datetime.now()
     return log_dir + prefix + now.strftime("%Y%m%d-%H%M") + "." + extension
 
+def capture_vlan_info(selected_vlan, jdev):
+    members = []
+    vlaninfo = VlanTable(jdev)
+    print("Selected VLAN: {}".format(selected_vlan))
+    print("\n******* VLAN INFO ******")
+    for name in vlaninfo:
+        print(name)
+        #if name.tag == selected_vlan:
+        #    print("{}: {}: {}".format(name.name, name.tag, name.members))
+        #   members = name.members
+    exit()
+    return members
+
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
@@ -146,56 +186,53 @@ def oper_commands(my_ips):
         my_ips = chooseDevices(iplist_dir)
 
     if my_ips:
-        if getTFAnswer("Continue with operational requests?"):
-            # Loop over commands and devices
-            try:
-                for ip in my_ips:
-                    stdout.write("-> Connecting to " + ip + " ... ")
-                    members = []
-                    with Device(host=ip, user=username, password=password) as jdev:
-                        vlan_list = []
-                        print("\n******* VLAN INFO ******\n")
-                        vlaninfo = VlanTable(jdev)
-                        vlaninfo.get()
-                        for name in vlaninfo:
-                            vlan_list.append(name.tag)
-                        selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                        print("Selected VLAN: {}".format(selected_vlan))
-                        print("\n******* VLAN INFO ******")
-                        for name in vlaninfo:
-                            if name.tag == selected_vlan:
-                                print("{}: {}: {}".format(name.name, name.tag, name.members))
-                                members = name.members
-                        print("\n******* STP BRIDGE INFO ******")
-                        stpbridge = STPBridgeTable(jdev)
-                        stpbridge.get()
-                        for vlan_id in stpbridge:
-                            if vlan_id.vlan_id == selected_vlan:
-                                print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
-                                                          vlan_id.local_bridge_mac, vlan_id.root_port))
-                        print("\n******* LLDP NEIGHBORS ******")
-                        lldpneigh = LLDPNeighborTable(jdev)
-                        lldpneigh.get()
-                        for local_i in lldpneigh:
-                            if type(members) == list:
-                                for item in remove_duplicates(members):
-                                    if local_i.local_parent != "-" and local_i.local_parent == item.split(".")[0]:
-                                        print("{}: {}: {}".format(local_i.local_parent, local_i.remote_chassis_id,
-                                                                    local_i.remote_sysname))
-                                    elif local_i.local_int == item.split(".")[0]:
-                                        print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
-                                                                    local_i.remote_sysname))
-                            else:
-                                if local_i.local_parent != "-" and local_i.local_parent == members.split(".")[0]:
+        # Loop over commands and devices
+        try:
+            for ip in my_ips:
+                stdout.write("-> Connecting to " + ip + " ... ")
+                members = []
+                with Device(host=ip, user=username, password=password) as jdev:
+                    vlan_list = []
+                    print("\n******* VLAN INFO ******\n")
+                    vlaninfo = VlanTable(jdev)
+                    vlaninfo.get()
+                    for name in vlaninfo:
+                        vlan_list.append(name.tag)
+                    selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
+                    print("Selected VLAN: {}".format(selected_vlan))
+                    print("\n******* VLAN INFO ******")
+                    for name in vlaninfo:
+                        if name.tag == selected_vlan:
+                            print("{}: {}: {}".format(name.name, name.tag, name.members))
+                            members = name.members
+                    print("\n******* STP BRIDGE INFO ******")
+                    stpbridge = STPBridgeTable(jdev)
+                    stpbridge.get()
+                    for vlan_id in stpbridge:
+                        if vlan_id.vlan_id == selected_vlan:
+                            print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+                                                      vlan_id.local_bridge_mac, vlan_id.root_port))
+                    print("\n******* LLDP NEIGHBORS ******")
+                    lldpneigh = LLDPNeighborTable(jdev)
+                    lldpneigh.get()
+                    for local_i in lldpneigh:
+                        if type(members) == list:
+                            for item in members:
+                                if local_i.local_parent != "-" and local_i.local_parent == item.split(".")[0]:
                                     print("{}: {}: {}".format(local_i.local_parent, local_i.remote_chassis_id,
-                                                              local_i.remote_sysname))
-                                elif local_i.local_int == members.split(".")[0]:
+                                                                local_i.remote_sysname))
+                                elif local_i.local_int == item.split(".")[0]:
                                     print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
                                                                 local_i.remote_sysname))
-            except KeyboardInterrupt:
-                print("Exiting Procedure...")
-        else:
-            print("\n!!! Configuration deployment aborted... No changes made !!!\n")
+                        else:
+                            if local_i.local_parent != "-" and local_i.local_parent == members.split(".")[0]:
+                                print("{}: {}: {}".format(local_i.local_parent, local_i.remote_chassis_id,
+                                                          local_i.remote_sysname))
+                            elif local_i.local_int == members.split(".")[0]:
+                                print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
+                                                            local_i.remote_sysname))
+        except KeyboardInterrupt:
+            print("Exiting Procedure...")
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
 
