@@ -165,16 +165,14 @@ def create_timestamped_log(prefix, extension):
     now = datetime.datetime.now()
     return log_dir + prefix + now.strftime("%Y%m%d-%H%M") + "." + extension
 
-def capture_vlan_info(selected_vlan, jdev):
+def capture_vlan_info(selected_vlan, vlaninfo):
     members = []
-    vlaninfo = VlanTable(jdev)
     print("Selected VLAN: {}".format(selected_vlan))
     print("\n******* VLAN INFO ******")
     for name in vlaninfo:
-        print(name)
-        #if name.tag == selected_vlan:
-        #    print("{}: {}: {}".format(name.name, name.tag, name.members))
-        #   members = name.members
+        if name.tag == selected_vlan:
+            print("{}: {}: {}".format(name.name, name.tag, name.members))
+            members = name.members
     exit()
     return members
 
@@ -199,7 +197,7 @@ def oper_commands(my_ips):
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    capture_vlan_info(selected_vlan, jdev)
+                    capture_vlan_info(selected_vlan, vlaninfo)
                     print("\n******* STP BRIDGE INFO ******")
                     stpbridge = STPBridgeTable(jdev)
                     stpbridge.get()
