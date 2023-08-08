@@ -171,10 +171,9 @@ def capture_vlan_info(selected_vlan, vlaninfo):
     print("\n******* VLAN INFO ******")
     for name in vlaninfo:
         print(name)
-        #if name.tag == selected_vlan:
-        #    print("{}: {}: {}".format(name.name, name.tag, name.members))
-        #    members = name.members
-    exit()
+        if name.tag == selected_vlan:
+            print("{}: {}: {}".format(name.name, name.tag, name.members))
+            members = name.members
     return members
 
 # Function for running operational commands to multiple devices
@@ -194,7 +193,7 @@ def oper_commands(my_ips):
                     vlan_list = []
                     print("\n******* VLAN INFO ******\n")
                     vlaninfo = VlanTable(jdev)
-                    vlaninfo.get()
+                    #vlaninfo.get()
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
