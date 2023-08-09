@@ -166,7 +166,7 @@ def create_timestamped_log(prefix, extension):
     return log_dir + prefix + now.strftime("%Y%m%d-%H%M") + "." + extension
 
 def capture_vlan_info(selected_vlan, vlaninfo):
-    vlan_dict = { "name": "", "tag": "", "members": [] }
+    vlan_dict = { "name": "", "tag": "" }
     print("Selected VLAN: {}".format(selected_vlan))
     print("\n******* VLAN INFO ******")
     for name in vlaninfo:
@@ -174,7 +174,7 @@ def capture_vlan_info(selected_vlan, vlaninfo):
             print("{}: {}: {}".format(name.name, name.tag, name.members))
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
-            vlan_dict["members"].append(name.members)
+            vlan_dict["members"] = name.members
     print("DICT")
     print(vlan_dict)
     exit()
