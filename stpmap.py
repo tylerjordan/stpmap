@@ -243,13 +243,12 @@ def oper_commands(my_ips):
     # Provide selection for sending a single command or multiple commands from a file
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
-
+    lldp_dict = {}
     if my_ips:
         # Loop over commands and devices
         try:
             for ip in my_ips:
                 stdout.write("-> Connecting to " + ip + " ... ")
-                members = []
                 with Device(host=ip, user=username, password=password) as jdev:
                     vlan_list = []
                     vlaninfo = VlanTable(jdev)
@@ -265,7 +264,18 @@ def oper_commands(my_ips):
 
                     lldpneigh = LLDPNeighborTable(jdev)
                     lldpneigh.get()
-                    capture_lldp_info(lldpneigh, vlan_dict["members"])
+                    lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
+
+        if stp_dict["vlan_root_port"] != None:
+            # Search the LLDP dict for the dict with the root port
+            print("Searching Dict...")
+            for lldp_int in lldp_dict:
+                if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
+                    print("Found Root Port and Host!!!")
+                    print("Interface is: {}").format(stp_dict["vlan_root_port"])
+                    print("Host is: {}").format(lldp_int["remote_sysname"])
+                    print("IP is: {}").format(dev_list[lldp_int["remote_sysname"]])
+        exit()
 
         except KeyboardInterrupt:
             print("Exiting Procedure...")
