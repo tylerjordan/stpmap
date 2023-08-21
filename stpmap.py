@@ -234,7 +234,6 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     print("LLDP DICT")
     print(lldp_ld)
-    exit()
     return(lldp_ld)
 
 # Function for running operational commands to multiple devices
