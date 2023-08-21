@@ -205,25 +205,33 @@ def capture_lldp_info(lldpneigh, members):
                     print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
                                               li.remote_sysname))
                     lldp_dict["local_int"] = li.local_parent
+                    lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                    lldp_dict["remote_sysname"] = li.remote_sysname
+                    lldp_ld.append(lldp_dict)
                 elif li.local_int == item.split(".")[0]:
                     print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
                                               li.remote_sysname))
                     lldp_dict["local_int"] = li.local_int
-                lldp_dict["remote_chassis_id"] = li.remote_chassis_id
-                lldp_dict["remote_sysname"] = li.remote_sysname
-                lldp_ld.append(lldp_dict)
+                    lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                    lldp_dict["remote_sysname"] = li.remote_sysname
+                    lldp_ld.append(lldp_dict)
+
         else:
             lldp_dict = {}
             if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
                 print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
                                           li.remote_sysname))
                 lldp_dict["local_int"] = li.local_parent
+                lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                lldp_dict["remote_sysname"] = li.remote_sysname
+                lldp_ld.append(lldp_dict)
             elif li.local_int == members.split(".")[0]:
                 print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
                                           li.remote_sysname))
-            lldp_dict["remote_chassis_id"] = li.remote_chassis_id
-            lldp_dict["remote_sysname"] = li.remote_sysname
-            lldp_ld.append(lldp_dict)
+                lldp_dict["local_int"] = li.local_int
+                lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                lldp_dict["remote_sysname"] = li.remote_sysname
+                lldp_ld.append(lldp_dict)
     print("LLDP DICT")
     print(lldp_ld)
     exit()
