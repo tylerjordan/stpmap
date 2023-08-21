@@ -243,6 +243,8 @@ def oper_commands(my_ips):
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     lldp_dict = {}
+    stp_dict = {}
+    vlan_dict = {}
     if my_ips:
         # Loop over commands and devices
         try:
@@ -265,15 +267,15 @@ def oper_commands(my_ips):
                     lldpneigh.get()
                     lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
 
-            if stp_dict["vlan_root_port"] != None:
-                # Search the LLDP dict for the dict with the root port
-                print("Searching Dict...")
-                for lldp_int in lldp_dict:
-                    if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
-                        print("Found Root Port and Host!!!")
-                        print("Interface is: {}").format(stp_dict["vlan_root_port"])
-                        print("Host is: {}").format(lldp_int["remote_sysname"])
-                        print("IP is: {}").format(dev_list[lldp_int["remote_sysname"]])
+                    if stp_dict["vlan_root_port"] != None:
+                        # Search the LLDP dict for the dict with the root port
+                        print("Searching Dict...")
+                        for lldp_int in lldp_dict:
+                            if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
+                                print("Found Root Port and Host!!!")
+                                print("Interface is: {}").format(stp_dict["vlan_root_port"])
+                                print("Host is: {}").format(lldp_int["remote_sysname"])
+                                print("IP is: {}").format(dev_list[lldp_int["remote_sysname"]])
             exit()
 
         except KeyboardInterrupt:
