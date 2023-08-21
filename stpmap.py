@@ -194,10 +194,9 @@ def capture_span_info(selected_vlan, stpbridge):
     print(stp_dict)
     return stp_dict
 
-def capture_lldp_info(selected_vlan, lldpneigh):
+def capture_lldp_info(lldpneigh, members):
     lldp_ld = []
     lldp_dict = {}
-    members = []
     print("\n******* LLDP NEIGHBORS ******")
     for li in lldpneigh:
         if type(members) == list:
@@ -240,15 +239,15 @@ def oper_commands(my_ips):
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    capture_vlan_info(selected_vlan, vlaninfo)
+                    vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
 
                     stpbridge = STPBridgeTable(jdev)
                     stpbridge.get()
-                    capture_span_info(selected_vlan, stpbridge)
+                    stp_dict = capture_span_info(selected_vlan, stpbridge)
 
                     lldpneigh = LLDPNeighborTable(jdev)
                     lldpneigh.get()
-                    capture_lldp_info(selected_vlan, lldpneigh)
+                    capture_lldp_info(lldpneigh, vlan_dict["members"])
 
         except KeyboardInterrupt:
             print("Exiting Procedure...")
