@@ -196,7 +196,6 @@ def capture_span_info(selected_vlan, stpbridge):
 
 def capture_lldp_info(lldpneigh, members):
     lldp_ld = []
-    lldp_dict = {}
     print("\n******* LLDP NEIGHBORS ******")
     for li in lldpneigh:
         if type(members) == list:
@@ -205,19 +204,30 @@ def capture_lldp_info(lldpneigh, members):
                 if li.local_parent != "-" and li.local_parent == item.split(".")[0]:
                     print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
                                               li.remote_sysname))
+                    lldp_dict["local_int"] = li.local_parent
                 elif li.local_int == item.split(".")[0]:
                     print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
                                               li.remote_sysname))
+                    lldp_dict["local_int"] = li.local_int
+                lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                lldp_dict["remote_sysname"] = li.remote_sysname
+                lldp_ld.append(lldp_dict)
         else:
             lldp_dict = {}
             if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
                 print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
                                           li.remote_sysname))
+                lldp_dict["local_int"] = li.local_parent
             elif li.local_int == members.split(".")[0]:
                 print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
                                           li.remote_sysname))
+            lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+            lldp_dict["remote_sysname"] = li.remote_sysname
+            lldp_ld.append(lldp_dict)
+    print("LLDP DICT")
+    print(lldp_ld)
     exit()
-
+    return(lldp_ld)
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
