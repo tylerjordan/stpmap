@@ -186,14 +186,39 @@ def capture_span_info(selected_vlan, stpbridge):
         if vlan_id.vlan_id == selected_vlan:
             print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
                                           vlan_id.local_bridge_mac, vlan_id.root_port))
-            stp_dict["vlanid"] = vlan_id.vlan_id
+            stp_dict["vlan_id"] = vlan_id.vlan_id
             stp_dict["vlan_rb_mac"] = vlan_id.root_bridge_mac
             stp_dict["vlan_local_mac"] = vlan_id.local_bridge_mac
             stp_dict["vlan_root_port"] = vlan_id.root_port
     print("STP DICT")
     print(stp_dict)
-    exit()
     return stp_dict
+
+def capture_lldp_info(selected_vlan, lldpneigh):
+    lldp_ld = []
+    lldp_dict = {}
+    members = []
+    print("\n******* LLDP NEIGHBORS ******")
+    for li in lldpneigh:
+        if type(members) == list:
+            for item in members:
+                lldp_dict = {}
+                if li.local_parent != "-" and li.local_parent == item.split(".")[0]:
+                    print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
+                                              li.remote_sysname))
+                elif li.local_int == item.split(".")[0]:
+                    print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
+                                              li.remote_sysname))
+        else:
+            lldp_dict = {}
+            if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
+                print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
+                                          li.remote_sysname))
+            elif li.local_int == members.split(".")[0]:
+                print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
+                                          li.remote_sysname))
+    exit()
+
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
@@ -221,25 +246,10 @@ def oper_commands(my_ips):
                     stpbridge.get()
                     capture_span_info(selected_vlan, stpbridge)
 
-                    print("\n******* LLDP NEIGHBORS ******")
                     lldpneigh = LLDPNeighborTable(jdev)
                     lldpneigh.get()
-                    for local_i in lldpneigh:
-                        if type(members) == list:
-                            for item in members:
-                                if local_i.local_parent != "-" and local_i.local_parent == item.split(".")[0]:
-                                    print("{}: {}: {}".format(local_i.local_parent, local_i.remote_chassis_id,
-                                                                local_i.remote_sysname))
-                                elif local_i.local_int == item.split(".")[0]:
-                                    print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
-                                                                local_i.remote_sysname))
-                        else:
-                            if local_i.local_parent != "-" and local_i.local_parent == members.split(".")[0]:
-                                print("{}: {}: {}".format(local_i.local_parent, local_i.remote_chassis_id,
-                                                          local_i.remote_sysname))
-                            elif local_i.local_int == members.split(".")[0]:
-                                print("{}: {}: {}".format(local_i.local_int, local_i.remote_chassis_id,
-                                                            local_i.remote_sysname))
+                    capture_lldp_info(selected_vlan, lldpneigh)
+
         except KeyboardInterrupt:
             print("Exiting Procedure...")
     else:
