@@ -166,7 +166,7 @@ def create_timestamped_log(prefix, extension):
     return log_dir + prefix + now.strftime("%Y%m%d-%H%M") + "." + extension
 
 def capture_vlan_info(selected_vlan, vlaninfo):
-    vlan_dict = { "name": "", "tag": "" }
+    vlan_dict = {}
     print("Selected VLAN: {}".format(selected_vlan))
     print("\n******* VLAN INFO ******")
     for name in vlaninfo:
@@ -175,10 +175,25 @@ def capture_vlan_info(selected_vlan, vlaninfo):
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["members"] = name.members
-    print("DICT")
+    print("VLAN DICT")
     print(vlan_dict)
-    exit()
     return vlan_dict
+
+def capture_span_info(selected_vlan, stpbridge):
+    stp_dict = {}
+    print("\n******* STP BRIDGE INFO ******")
+    for vlan_id in stpbridge:
+        if vlan_id.vlan_id == selected_vlan:
+            print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+                                          vlan_id.local_bridge_mac, vlan_id.root_port))
+            stp_dict["vlanid"] = vlan_id.vlan_id
+            stp_dict["vlan_rb_mac"] = vlan_id.root_bridge_mac
+            stp_dict["vlan_local_mac"] = vlan_id.local_bridge_mac
+            stp_dict["vlan_root_port"] = vlan_id.root_port
+    print("STP DICT")
+    print(stp_dict)
+    exit()
+    return stp_dict
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
@@ -201,13 +216,11 @@ def oper_commands(my_ips):
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
                     capture_vlan_info(selected_vlan, vlaninfo)
-                    print("\n******* STP BRIDGE INFO ******")
+
                     stpbridge = STPBridgeTable(jdev)
                     stpbridge.get()
-                    for vlan_id in stpbridge:
-                        if vlan_id.vlan_id == selected_vlan:
-                            print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
-                                                      vlan_id.local_bridge_mac, vlan_id.root_port))
+                    capture_span_info(selected_vlan, stpbridge)
+
                     print("\n******* LLDP NEIGHBORS ******")
                     lldpneigh = LLDPNeighborTable(jdev)
                     lldpneigh.get()
