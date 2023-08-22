@@ -175,8 +175,6 @@ def capture_vlan_info(selected_vlan, vlaninfo):
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["members"] = name.members
-    print("VLAN DICT")
-    print(vlan_dict)
     return vlan_dict
 
 def capture_span_info(selected_vlan, stpbridge):
@@ -190,8 +188,6 @@ def capture_span_info(selected_vlan, stpbridge):
             stp_dict["vlan_rb_mac"] = vlan_id.root_bridge_mac
             stp_dict["vlan_local_mac"] = vlan_id.local_bridge_mac
             stp_dict["vlan_root_port"] = vlan_id.root_port
-    print("STP DICT")
-    print(stp_dict)
     return stp_dict
 
 def capture_lldp_info(lldpneigh, members):
@@ -232,8 +228,6 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                 lldp_dict["remote_sysname"] = li.remote_sysname
                 lldp_ld.append(lldp_dict)
-    print("LLDP DICT")
-    print(lldp_ld)
     return(lldp_ld)
 
 # Function for running operational commands to multiple devices
@@ -242,9 +236,6 @@ def oper_commands(my_ips):
     # Provide selection for sending a single command or multiple commands from a file
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
-    lldp_dict = {}
-    stp_dict = {}
-    vlan_dict = {}
     if my_ips:
         # Loop over commands and devices
         try:
@@ -258,6 +249,8 @@ def oper_commands(my_ips):
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
                     vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
+                    print("VLAN DICT")
+                    print(vlan_dict)
 
                     stpbridge = STPBridgeTable(jdev)
                     stpbridge.get()
