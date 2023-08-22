@@ -182,11 +182,14 @@ def capture_span_info(selected_vlan, stpbridge):
     print("\n******* STP BRIDGE INFO ******")
     for vlan_id in stpbridge:
         if vlan_id.vlan_id == selected_vlan:
-            print("{}: {}: {}: {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
-                                          vlan_id.local_bridge_mac, vlan_id.root_port))
+            print("{} | {}({}) | {}({}) | {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+                                                     vlan_id.root_bridge_priority, vlan_id.local_bridge_mac,
+                                                     vlan_id.local_bridge_priority, vlan_id.root_port))
             stp_dict["vlan_id"] = vlan_id.vlan_id
             stp_dict["vlan_rb_mac"] = vlan_id.root_bridge_mac
+            stp_dict["vlan_rb_prio"] = vlan_id.root_bridge_priority
             stp_dict["vlan_local_mac"] = vlan_id.local_bridge_mac
+            stp_dict["vlan_local_prio"] = vlan_id.local_bridge_priority
             stp_dict["vlan_root_port"] = vlan_id.root_port
     return stp_dict
 
