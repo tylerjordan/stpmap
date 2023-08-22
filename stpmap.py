@@ -67,6 +67,8 @@ env_dict = [
      "edge_ports": ["ge-0/0/3"]
      }
 ]
+chassis_ld = {}
+
 
 # Function to determine running enviornment (Windows/Linux/Mac) and use correct path syntax
 def detect_env():
@@ -235,9 +237,11 @@ def capture_lldp_info(lldpneigh, members):
 
 def capture_chassis_info(selected_vlan, ip):
     chassis_dict = {}
+    host = {i for i in dev_list if dev_list[i] == ip}
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         vlaninfo = VlanTable(jdev)
+        vlaninfo.get()
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
         print("VLAN DICT")
         print(vlan_dict)
@@ -254,14 +258,11 @@ def capture_chassis_info(selected_vlan, ip):
         print("LLDP DICT")
         print(lldp_dict)
 
-        chassis_dict["name"] = {i for i in dev_list if dev_list[i] == ip}
         chassis_dict["ip"] = ip
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
         chassis_dict["lldp"] = lldp_dict
-
-    return chassis_dict
-
+        chassis_ld[host] = chassis_dict
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
@@ -283,8 +284,10 @@ def oper_commands(my_ips):
                         vlan_list.append(name.tag)
 
                 selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                chassis_dict = capture_chassis_info(selected_vlan, ip)
+                capture_chassis_info(selected_vlan, ip)
+            # Loop over hosts
 
+            # Check for the root port host
             if chassis_dict["stp"]["vlan_root_port"] != None:
                 # Search the LLDP dict for the dict with the root port
                 print("Searching Dict...")
