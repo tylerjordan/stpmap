@@ -262,6 +262,7 @@ def capture_chassis_info(selected_vlan, ip):
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
         chassis_dict["lldp"] = lldp_dict
+        print("Host: {}".format(host))
         chassis_ld[host] = chassis_dict
 
 # Function for running operational commands to multiple devices
