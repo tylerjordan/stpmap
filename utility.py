@@ -801,6 +801,13 @@ def ping(ip):
             return True
         except subprocess.CalledProcessError:
             return False
+# Get key based on value
+def key_from_value(dict, val):
+    for key, value in dict.items():
+        if val == value:
+            return key
+    return None
+
 # Clear out any duplicates from the provided list
 def remove_duplicates(alist):
     nodup_list = []
