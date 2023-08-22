@@ -235,6 +235,13 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     return(lldp_ld)
 
+def get_downstream_hosts(lldp_dict, root_port):
+    downstream_list = []
+    for one_int in lldp_dict:
+        if one_int["local_int"] != root_port:
+            downstream_list.append(lldp_dict["remote_sysname"])
+    return downstream_list
+
 def capture_chassis_info(selected_vlan, ip):
     chassis_dict = {}
     host = {i for i in dev_list if dev_list[i] == ip}
@@ -262,8 +269,11 @@ def capture_chassis_info(selected_vlan, ip):
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
         chassis_dict["lldp"] = lldp_dict
+        chassis_dict["upstream"] = stp_dict["vlan_root_port"]
+        chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
 
         chassis_ld[str(host)] = chassis_dict
+    print(chassis_ld)
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
@@ -286,8 +296,7 @@ def oper_commands(my_ips):
 
                 selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
                 capture_chassis_info(selected_vlan, ip)
-            # Loop over hosts
-
+                exit()
             # Check for the root port host
             if chassis_dict["stp"]["vlan_root_port"] != None:
                 # Search the LLDP dict for the dict with the root port
