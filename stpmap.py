@@ -276,6 +276,8 @@ def oper_commands(my_ips):
                                 print("Interface is: {}").format(stp_dict["vlan_root_port"])
                                 print("Host is: {}").format(lldp_int["remote_sysname"])
                                 print("IP is: {}").format(dev_list[lldp_int["remote_sysname"]])
+                    else:
+                        print("This is the root bridge for VLAN {}").format(vlan_dict["tag"])
             exit()
 
         except KeyboardInterrupt:
