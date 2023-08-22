@@ -270,11 +270,11 @@ def oper_commands(my_ips):
                         for lldp_int in lldp_dict:
                             if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
                                 print("Found Root Port and Host!!!")
-                                print("Interface is: {}").format(stp_dict["vlan_root_port"])
-                                print("Host is: {}").format(lldp_int["remote_sysname"])
-                                print("IP is: {}").format(dev_list[lldp_int["remote_sysname"]])
+                                print("Interface is: {}".format(stp_dict["vlan_root_port"]))
+                                print("Host is: {}".format(lldp_int["remote_sysname"]))
+                                print("IP is: {}".format(dev_list[lldp_int["remote_sysname"]]))
                     else:
-                        print("This is the root bridge for VLAN {}").format(vlan_dict["tag"])
+                        print("This is the root bridge for VLAN {}".format(vlan_dict["tag"]))
             exit()
 
         except KeyboardInterrupt:
