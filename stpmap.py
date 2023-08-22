@@ -239,8 +239,8 @@ def get_downstream_hosts(lldp_dict, root_port):
     downstream_list = []
     for one_int in lldp_dict:
         if one_int["local_int"] != root_port:
-            print("Local Int: {} Root Port: {} Sysname: {}".format(one_int["local_int"], root_port, lldp_dict["remote_sysname"]))
-            downstream_list.append(lldp_dict["remote_sysname"])
+            print("Local Int: {} Root Port: {} Sysname: {}".format(one_int["local_int"], root_port, one_int["remote_sysname"]))
+            downstream_list.append(one_int["remote_sysname"])
     return downstream_list
 
 def capture_chassis_info(selected_vlan, ip):
