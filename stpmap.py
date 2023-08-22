@@ -245,7 +245,7 @@ def get_downstream_hosts(lldp_dict, root_port):
 
 def capture_chassis_info(selected_vlan, ip):
     chassis_dict = {}
-    host = str({i for i in dev_list if dev_list[i] == ip})
+    host = str(i for i in dev_list if dev_list[i] == ip)
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         vlaninfo = VlanTable(jdev)
