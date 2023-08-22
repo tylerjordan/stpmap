@@ -245,7 +245,7 @@ def get_downstream_hosts(lldp_dict, root_port):
 
 def capture_chassis_info(selected_vlan, ip):
     chassis_dict = {}
-    host = {i for i in dev_list if dev_list[i] == ip}
+    host = str({i for i in dev_list if dev_list[i] == ip})
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         vlaninfo = VlanTable(jdev)
@@ -273,7 +273,7 @@ def capture_chassis_info(selected_vlan, ip):
         chassis_dict["upstream"] = stp_dict["vlan_root_port"]
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
 
-        chassis_ld[str(host)] = chassis_dict
+        chassis_ld[host] = chassis_dict
     print(chassis_ld)
 
 # Function for running operational commands to multiple devices
