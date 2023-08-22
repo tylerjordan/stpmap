@@ -233,13 +233,40 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     return(lldp_ld)
 
+def capture_chassis_info(selected_vlan, ip):
+    chassis_dict = {}
+    with Device(host=ip, user=username, password=password) as jdev:
+        vlaninfo = VlanTable(jdev)
+        vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
+        print("VLAN DICT")
+        print(vlan_dict)
+
+        stpbridge = STPBridgeTable(jdev)
+        stpbridge.get()
+        stp_dict = capture_span_info(selected_vlan, stpbridge)
+        print("STP DICT")
+        print(stp_dict)
+
+        lldpneigh = LLDPNeighborTable(jdev)
+        lldpneigh.get()
+        lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
+        print("LLDP DICT")
+        print(lldp_dict)
+
+        chassis_dict["name"] = {i for i in dev_list if dev_list[i] == ip}
+        chassis_dict["ip"] = ip
+        chassis_dict["vlan"] = vlan_dict
+        chassis_dict["stp"] = stp_dict
+        chassis_dict["lldp"] = lldp_dict
+
+    return chassis_dict
+
+
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
-    vlan_dict = {}
-    stp_dict = {}
-    lldp_dict = {}
+    chassis_dict = {}
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     if my_ips:
@@ -254,33 +281,19 @@ def oper_commands(my_ips):
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-                    print("VLAN DICT")
-                    print(vlan_dict)
+                    chassis_dict = capture_chassis_info(selected_vlan, ip)
 
-                    stpbridge = STPBridgeTable(jdev)
-                    stpbridge.get()
-                    stp_dict = capture_span_info(selected_vlan, stpbridge)
-                    print("STP DICT")
-                    print(stp_dict)
-
-                    lldpneigh = LLDPNeighborTable(jdev)
-                    lldpneigh.get()
-                    lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
-                    print("LLDP DICT")
-                    print(lldp_dict)
-
-            if stp_dict["vlan_root_port"] != None:
+            if chassis_dict["stp"]["vlan_root_port"] != None:
                 # Search the LLDP dict for the dict with the root port
                 print("Searching Dict...")
-                for lldp_int in lldp_dict:
-                    if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
+                for lldp_int in chassis_dict["lldp"]:
+                    if lldp_int["local_int"] == chassis_dict["stp"]["vlan_root_port"]:
                         print("Found Root Port and Host!!!")
-                        print("Interface is: {}".format(stp_dict["vlan_root_port"]))
+                        print("Interface is: {}".format(chassis_dict["stp"]["vlan_root_port"]))
                         print("Host is: {}".format(lldp_int["remote_sysname"]))
                         print("IP is: {}".format(dev_list[lldp_int["remote_sysname"]]))
             else:
-                print("This is the root bridge for VLAN {}".format(vlan_dict["tag"]))
+                print("This is the root bridge for VLAN {}".format(chassis_dict["vlan"]["tag"]))
             exit()
 
         except KeyboardInterrupt:
