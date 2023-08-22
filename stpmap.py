@@ -255,10 +255,14 @@ def oper_commands(my_ips):
                     stpbridge = STPBridgeTable(jdev)
                     stpbridge.get()
                     stp_dict = capture_span_info(selected_vlan, stpbridge)
+                    print("STP DICT")
+                    print(stp_dict)
 
                     lldpneigh = LLDPNeighborTable(jdev)
                     lldpneigh.get()
                     lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
+                    print("LLDP DICT")
+                    print(lldp_dict)
 
                     if stp_dict["vlan_root_port"] != None:
                         # Search the LLDP dict for the dict with the root port
