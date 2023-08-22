@@ -234,6 +234,9 @@ def capture_lldp_info(lldpneigh, members):
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
+    vlan_dict = {}
+    stp_dict = {}
+    lldp_dict = {}
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     if my_ips:
@@ -264,17 +267,17 @@ def oper_commands(my_ips):
                     print("LLDP DICT")
                     print(lldp_dict)
 
-                    if stp_dict["vlan_root_port"] != None:
-                        # Search the LLDP dict for the dict with the root port
-                        print("Searching Dict...")
-                        for lldp_int in lldp_dict:
-                            if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
-                                print("Found Root Port and Host!!!")
-                                print("Interface is: {}".format(stp_dict["vlan_root_port"]))
-                                print("Host is: {}".format(lldp_int["remote_sysname"]))
-                                print("IP is: {}".format(dev_list[lldp_int["remote_sysname"]]))
-                    else:
-                        print("This is the root bridge for VLAN {}".format(vlan_dict["tag"]))
+            if stp_dict["vlan_root_port"] != None:
+                # Search the LLDP dict for the dict with the root port
+                print("Searching Dict...")
+                for lldp_int in lldp_dict:
+                    if lldp_int["local_int"] == stp_dict["vlan_root_port"]:
+                        print("Found Root Port and Host!!!")
+                        print("Interface is: {}".format(stp_dict["vlan_root_port"]))
+                        print("Host is: {}".format(lldp_int["remote_sysname"]))
+                        print("IP is: {}".format(dev_list[lldp_int["remote_sysname"]]))
+            else:
+                print("This is the root bridge for VLAN {}".format(vlan_dict["tag"]))
             exit()
 
         except KeyboardInterrupt:
