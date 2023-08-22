@@ -233,31 +233,32 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     return(lldp_ld)
 
-def capture_chassis_info(selected_vlan, ip, jdev):
+def capture_chassis_info(selected_vlan, ip):
     chassis_dict = {}
+    stdout.write("-> Connecting to " + ip + " ... ")
+    with Device(host=ip, user=username, password=password) as jdev:
+        vlaninfo = VlanTable(jdev)
+        vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
+        print("VLAN DICT")
+        print(vlan_dict)
 
-    vlaninfo = VlanTable(jdev)
-    vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-    print("VLAN DICT")
-    print(vlan_dict)
+        stpbridge = STPBridgeTable(jdev)
+        stpbridge.get()
+        stp_dict = capture_span_info(selected_vlan, stpbridge)
+        print("STP DICT")
+        print(stp_dict)
 
-    stpbridge = STPBridgeTable(jdev)
-    stpbridge.get()
-    stp_dict = capture_span_info(selected_vlan, stpbridge)
-    print("STP DICT")
-    print(stp_dict)
+        lldpneigh = LLDPNeighborTable(jdev)
+        lldpneigh.get()
+        lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
+        print("LLDP DICT")
+        print(lldp_dict)
 
-    lldpneigh = LLDPNeighborTable(jdev)
-    lldpneigh.get()
-    lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
-    print("LLDP DICT")
-    print(lldp_dict)
-
-    chassis_dict["name"] = {i for i in dev_list if dev_list[i] == ip}
-    chassis_dict["ip"] = ip
-    chassis_dict["vlan"] = vlan_dict
-    chassis_dict["stp"] = stp_dict
-    chassis_dict["lldp"] = lldp_dict
+        chassis_dict["name"] = {i for i in dev_list if dev_list[i] == ip}
+        chassis_dict["ip"] = ip
+        chassis_dict["vlan"] = vlan_dict
+        chassis_dict["stp"] = stp_dict
+        chassis_dict["lldp"] = lldp_dict
 
     return chassis_dict
 
@@ -280,8 +281,9 @@ def oper_commands(my_ips):
                     vlaninfo.get()
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
-                    selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    chassis_dict = capture_chassis_info(selected_vlan, ip, jdev)
+
+                selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
+                chassis_dict = capture_chassis_info(selected_vlan, ip)
 
             if chassis_dict["stp"]["vlan_root_port"] != None:
                 # Search the LLDP dict for the dict with the root port
