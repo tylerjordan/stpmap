@@ -248,18 +248,19 @@ def capture_chassis_info(selected_vlan, ip):
     host = key_from_value(dev_list, ip)
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
+        # VLAN Info (show vlans)
         vlaninfo = VlanTable(jdev)
         vlaninfo.get()
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
         print("VLAN DICT")
         print(vlan_dict)
-
+        # STP Info (show spanning-tree bridge)
         stpbridge = STPBridgeTable(jdev)
         stpbridge.get()
         stp_dict = capture_span_info(selected_vlan, stpbridge)
         print("STP DICT")
         print(stp_dict)
-
+        # LLDP Info (show lldp neighbors)
         lldpneigh = LLDPNeighborTable(jdev)
         lldpneigh.get()
         lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
