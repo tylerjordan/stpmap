@@ -69,7 +69,7 @@ env_dict = [
      "edge_ports": ["ge-0/0/3"]
      }
 ]
-chassis_ld = {}
+chassis_dict = {}
 
 
 # Function to determine running enviornment (Windows/Linux/Mac) and use correct path syntax
@@ -272,10 +272,10 @@ def get_downstream_hosts(lldp_dict, root_port):
     return downstream_list
 
 def capture_chassis_info(selected_vlan, ip):
-    chassis_dict = {}
     host = key_from_value(dev_list, ip)
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
+        # Raw collected information
         # VLAN Info (show vlans)
         vlaninfo = VlanTable(jdev)
         vlaninfo.get()
@@ -295,6 +295,8 @@ def capture_chassis_info(selected_vlan, ip):
         print("LLDP DICT")
         print(lldp_dict)
 
+        # Computed variables
+        chassis_dict["hostname"] = host
         chassis_dict["ip"] = ip
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
@@ -307,9 +309,7 @@ def capture_chassis_info(selected_vlan, ip):
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
 
-
-        chassis_ld[host] = chassis_dict
-    print(chassis_ld)
+    print(chassis_dict)
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
