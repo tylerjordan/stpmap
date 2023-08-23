@@ -802,7 +802,7 @@ def ping(ip):
         except subprocess.CalledProcessError:
             return False
 # Get key based on value
-def key_from_value(dict, val):
+def host_from_ip(dict, val):
     for key, value in dict.items():
         if val == value:
             return key

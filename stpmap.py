@@ -69,10 +69,9 @@ env_dict = [
      "edge_ports": ["ge-0/0/3"]
      }
 ]
-chassis_dict = {}
+all_chassis = {}
 
-
-# Function to determine running enviornment (Windows/Linux/Mac) and use correct path syntax
+# Function to determine running environment (Windows/Linux/Mac) and use correct path syntax
 def detect_env():
     """ Purpose: Detect OS and create appropriate path variables. """
     global credsCSV
@@ -271,8 +270,9 @@ def get_downstream_hosts(lldp_dict, root_port):
             downstream_list.append(i)
     return downstream_list
 
-def capture_chassis_info(selected_vlan, ip):
-    host = key_from_value(dev_list, ip)
+def capture_chassis_info(selected_vlan, host):
+    chassis_dict = {}
+    ip = dev_list[host]
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         # Raw collected information
@@ -310,12 +310,14 @@ def capture_chassis_info(selected_vlan, ip):
         chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
 
     print(chassis_dict)
+    return(chassis_dict)
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
-    chassis_dict = {}
+    host = None
+    selected_vlan = "None"
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     if my_ips:
@@ -329,26 +331,26 @@ def oper_commands(my_ips):
                     vlaninfo.get()
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
-
-                selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                capture_chassis_info(selected_vlan, ip)
-                exit()
-            # Check for the root port host
-            if chassis_dict["stp"]["vlan_root_port"] != None:
-                # Search the LLDP dict for the dict with the root port
-                print("Searching Dict...")
-                for lldp_int in chassis_dict["lldp"]:
-                    if lldp_int["local_int"] == chassis_dict["stp"]["vlan_root_port"]:
-                        print("Found Root Port and Host!!!")
-                        print("Interface is: {}".format(chassis_dict["stp"]["vlan_root_port"]))
-                        print("Host is: {}".format(lldp_int["remote_sysname"]))
-                        print("IP is: {}".format(dev_list[lldp_int["remote_sysname"]]))
-            else:
-                print("This is the root bridge for VLAN {}".format(chassis_dict["vlan"]["tag"]))
-            exit()
-
+                    selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
+                    host = host_from_ip(dev_list, ip)
         except KeyboardInterrupt:
             print("Exiting Procedure...")
+        # Loop over hosts list
+        while host:
+            # Capture from host
+            chassis_dict = capture_chassis_info(selected_vlan, host)
+            # Check if this device is the root bridge, this is ideal
+            if chassis_dict["root_bridge"]:
+                # Search the LLDP dict for the dict with the root port
+                print("-> {} is the root bridge of VLAN {}({})".format(host, chassis_dict["vlan"]["name"],
+                                                                                chassis_dict["vlan"]["tag"]))
+                host = False
+            # This device is not the root bridge, going to walk up to the root bridge
+            else:
+                print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
+                                                                        chassis_dict["vlan"]["tag"]))
+                host = chassis_dict["upstream"]
+        exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
 
