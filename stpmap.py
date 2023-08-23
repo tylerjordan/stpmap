@@ -47,7 +47,9 @@ dev_list = {
     "CN2": "132.32.255.202",
     "CN3": "132.32.255.203",
     "CN4": "132.32.255.204",
-    "CN5": "132.32.255.205"
+    "CN5": "132.32.255.205",
+    "CDN-168": "132.32.255.209",
+    "CDN-167": "132.32.255.212"
 }
 
 env_dict = [
@@ -235,11 +237,19 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     return(lldp_ld)
 
+def get_upstream_host(lldp_dict, root_port):
+    upstream_host = None
+    for one_int in lldp_dict:
+        if one_int["local_int"] == root_port:
+            print("Upstream Int: {} Root Port: {} Sysname: {}".format(one_int["local_int"], root_port, one_int["remote_sysname"]))
+            upstream_host = one_int["remote_sysname"]
+    return upstream_host
+
 def get_downstream_hosts(lldp_dict, root_port):
     downstream_list = []
     for one_int in lldp_dict:
         if one_int["local_int"] != root_port:
-            print("Local Int: {} Root Port: {} Sysname: {}".format(one_int["local_int"], root_port, one_int["remote_sysname"]))
+            print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
             downstream_list.append(one_int["remote_sysname"])
     return downstream_list
 
@@ -275,7 +285,7 @@ def capture_chassis_info(selected_vlan, ip):
             chassis_dict["root_bridge"] = True
         else:
             chassis_dict["root_bridge"] = False
-        chassis_dict["upstream"] = stp_dict["vlan_root_port"]
+        chassis_dict["upstream"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
 
         chassis_ld[host] = chassis_dict
