@@ -237,11 +237,17 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     return(lldp_ld)
 
-def get_non_lldp_intf(lldp_dict, vlan_dict):
-    exit()
-    #if vlan_dict["members"]
-    #for intf in vlan_dict["members"]:
-
+def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
+    non_lldp_intf = []
+    # Check if the list consists of only one interface
+    if type(vlan_dict["members"]) == list:
+        non_lldp_intf.append(vlan_dict["members"])
+    # If the interfaces are in a list...
+    else:
+        for intf in vlan_dict["members"]:
+            if intf.split(".")[0] != root_port:
+                non_lldp_intf.append(intf)
+    return non_lldp_intf
 
 def get_upstream_host(lldp_dict, root_port):
     upstream_host = None
@@ -299,7 +305,7 @@ def capture_chassis_info(selected_vlan, ip):
             chassis_dict["root_bridge"] = False
         chassis_dict["upstream"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
-        chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict)
+        chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
 
 
         chassis_ld[host] = chassis_dict
