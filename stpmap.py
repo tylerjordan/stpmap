@@ -240,7 +240,7 @@ def capture_lldp_info(lldpneigh, members):
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
     non_lldp_intf = []
     # Check if the list consists of only one interface
-    if type(vlan_dict["members"]) == list:
+    if type(vlan_dict["members"]) != list:
         non_lldp_intf.append(vlan_dict["members"])
     # If the interfaces are in a list...
     else:
