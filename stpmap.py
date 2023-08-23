@@ -237,6 +237,12 @@ def capture_lldp_info(lldpneigh, members):
                 lldp_ld.append(lldp_dict)
     return(lldp_ld)
 
+def get_non_lldp_intf(lldp_dict, vlan_dict):
+    exit()
+    #if vlan_dict["members"]
+    #for intf in vlan_dict["members"]:
+
+
 def get_upstream_host(lldp_dict, root_port):
     upstream_host = None
     for one_int in lldp_dict:
@@ -246,11 +252,17 @@ def get_upstream_host(lldp_dict, root_port):
     return upstream_host
 
 def get_downstream_hosts(lldp_dict, root_port):
+    downstream_raw = []
     downstream_list = []
+    # Create list of downstream hosts
     for one_int in lldp_dict:
         if one_int["local_int"] != root_port:
             print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
-            downstream_list.append(one_int["remote_sysname"])
+            downstream_raw.append(one_int["remote_sysname"])
+    # Remove duplicates
+    for i in downstream_raw:
+        if i not in downstream_list:
+            downstream_list.append(i)
     return downstream_list
 
 def capture_chassis_info(selected_vlan, ip):
@@ -287,6 +299,8 @@ def capture_chassis_info(selected_vlan, ip):
             chassis_dict["root_bridge"] = False
         chassis_dict["upstream"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
+        chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict)
+
 
         chassis_ld[host] = chassis_dict
     print(chassis_ld)
