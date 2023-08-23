@@ -270,6 +270,10 @@ def capture_chassis_info(selected_vlan, ip):
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
         chassis_dict["lldp"] = lldp_dict
+        if stp_dict["vlan_root_port"] == None:
+            chassis_dict["root_bridge"] = True
+        else:
+            chassis_dict["root_bridge"] = False
         chassis_dict["upstream"] = stp_dict["vlan_root_port"]
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
 
