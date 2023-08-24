@@ -361,6 +361,8 @@ def oper_commands(my_ips):
                 # Create downstream peer list
                 print("-> Downstream Peer List:")
                 print(chassis_dict["downstream"])
+                print("-> Non Interface List:")
+                print(chassis_dict["non-lldp-intf"])
                 host = False
 
             # This device is not the root bridge
@@ -373,8 +375,6 @@ def oper_commands(my_ips):
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                             chassis_dict["vlan"]["tag"]))
                     host = chassis_dict["upstream"]
-
-
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
