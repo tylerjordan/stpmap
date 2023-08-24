@@ -170,11 +170,11 @@ def create_timestamped_log(prefix, extension):
 
 def capture_vlan_info(selected_vlan, vlaninfo):
     vlan_dict = {}
-    print("Selected VLAN: {}".format(selected_vlan))
-    print("\n******* VLAN INFO ******")
+    print("\nSelected VLAN: {}".format(selected_vlan))
+    print("******* VLAN INFO ******")
     for name in vlaninfo:
         if name.tag == selected_vlan:
-            print("{}: {}: {}".format(name.name, name.tag, name.members))
+            #print("{}: {}: {}".format(name.name, name.tag, name.members))
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["members"] = name.members
@@ -185,9 +185,9 @@ def capture_span_info(selected_vlan, stpbridge):
     print("\n******* STP BRIDGE INFO ******")
     for vlan_id in stpbridge:
         if vlan_id.vlan_id == selected_vlan:
-            print("{} | {}({}) | {}({}) | {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
-                                                     vlan_id.root_bridge_priority, vlan_id.local_bridge_mac,
-                                                     vlan_id.local_bridge_priority, vlan_id.root_port))
+            #print("{} | {}({}) | {}({}) | {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
+            #                                         vlan_id.root_bridge_priority, vlan_id.local_bridge_mac,
+            #                                         vlan_id.local_bridge_priority, vlan_id.root_port))
             stp_dict["vlan_id"] = vlan_id.vlan_id
             stp_dict["vlan_rb_mac"] = vlan_id.root_bridge_mac
             stp_dict["vlan_rb_prio"] = vlan_id.root_bridge_priority
@@ -361,7 +361,7 @@ def oper_commands(my_ips):
                 print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                         chassis_dict["vlan"]["tag"]))
                 host = chassis_dict["upstream"]
-                exit()
+                host = False
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
