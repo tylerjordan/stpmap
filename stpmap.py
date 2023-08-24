@@ -257,10 +257,10 @@ def get_upstream_host(lldp_dict, root_port):
 def get_downstream_hosts(lldp_dict, root_port):
     downstream_raw = []
     downstream_list = []
-    host_int_dict = {}
     print("Root Port: {}".format(root_port))
     # Create list of downstream hosts
     for one_int in lldp_dict:
+        host_int_dict = {}
         if one_int["local_int"] != root_port:
             print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
             host_int_dict["name"] = one_int["remote_sysname"]
