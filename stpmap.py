@@ -361,6 +361,7 @@ def oper_commands(my_ips):
                 print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                         chassis_dict["vlan"]["tag"]))
                 host = chassis_dict["upstream"]
+                exit()
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
