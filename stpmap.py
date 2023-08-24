@@ -236,14 +236,30 @@ def capture_lldp_info(lldpneigh, members):
 
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
     non_lldp_intf = []
-    # Check if the list consists of only one interface
+    # Check if the list consists of only one vlan interface
     if type(vlan_dict["members"]) != list:
-        non_lldp_intf.append(vlan_dict["members"])
-    # If the interfaces are in a list...
+        non_lldp_dict = {}
+        # If this vlan interface doesn't exist in the LLDP list, it's either a (non-LLDP) trunk or endpoint
+        if not any(d["local_int"] == vlan_dict["members"].split(".")[0] for d in lldp_dict):
+            non_lldp_dict["intf"] = vlan_dict["members"].split("*")[0]
+            if "*" in vlan_dict["members"]:
+                non_lldp_dict["active"] = True
+            else:
+                non_lldp_dict["active"] = False
+            non_lldp_intf.append(non_lldp_dict)
+    # If there are multiple vlan interfaces to check...
     else:
-        for intf in vlan_dict["members"]:
-            if intf.split(".")[0] != root_port:
-                non_lldp_intf.append(intf)
+        # Check all the vlan interfaces
+        for vlan_int in vlan_dict["members"]:
+            non_lldp_dict = {}
+            # If this vlan interface doesn't exist in the LLDP list, it's either a (non-LLDP) trunk or endpoint
+            if not any(d["local_int"] == vlan_int.split(".")[0] for d in lldp_dict):
+                non_lldp_dict["intf"] = vlan_int.split("*")[0]
+                if "*" in vlan_int:
+                    non_lldp_dict["active"] = True
+                else:
+                    non_lldp_dict["active"] = False
+                non_lldp_intf.append(non_lldp_dict)
     return non_lldp_intf
 
 def get_upstream_host(lldp_dict, root_port):
