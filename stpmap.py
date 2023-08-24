@@ -265,9 +265,9 @@ def get_downstream_hosts(lldp_dict, root_port):
             print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
             host_int_dict["name"] = one_int["remote_sysname"]
             host_int_dict["intf"] = one_int["local_int"]
-            print("Host Int Dict")
-            print(host_int_dict)
+            print("Host Int Dict: {}".format(host_int_dict))
             downstream_raw.append(host_int_dict)
+            print("Downstream Raw: {}".format(downstream_raw))
     # Remove duplicates
     print("List")
     print(downstream_raw)
