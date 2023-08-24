@@ -170,7 +170,6 @@ def create_timestamped_log(prefix, extension):
 
 def capture_vlan_info(selected_vlan, vlaninfo):
     vlan_dict = {}
-    print("\nSelected VLAN: {}".format(selected_vlan))
     print("******* VLAN INFO ******")
     for name in vlaninfo:
         if name.tag == selected_vlan:
@@ -275,7 +274,7 @@ def get_downstream_hosts(lldp_dict, root_port):
 def capture_chassis_info(selected_vlan, host):
     chassis_dict = {}
     ip = dev_list[host]
-    starHeading(host, 5)
+    print(starHeading(host, 5))
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         # Raw collected information
