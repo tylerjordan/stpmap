@@ -69,7 +69,7 @@ env_dict = [
      "edge_ports": ["ge-0/0/3"]
      }
 ]
-all_chassis = {}
+all_chassis = []
 
 # Function to determine running environment (Windows/Linux/Mac) and use correct path syntax
 def detect_env():
@@ -217,7 +217,6 @@ def capture_lldp_info(lldpneigh, members):
                     lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                     lldp_dict["remote_sysname"] = li.remote_sysname
                     lldp_ld.append(lldp_dict)
-
         else:
             lldp_dict = {}
             if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
@@ -259,11 +258,14 @@ def get_upstream_host(lldp_dict, root_port):
 def get_downstream_hosts(lldp_dict, root_port):
     downstream_raw = []
     downstream_list = []
+    host_int_dict = {}
     # Create list of downstream hosts
     for one_int in lldp_dict:
         if one_int["local_int"] != root_port:
             print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
-            downstream_raw.append(one_int["remote_sysname"])
+            host_int_dict["name"] = one_int["remote_sysname"]
+            host_int_dict["intf"] = one_int["local_int"]
+            downstream_raw.append(host_int_dict)
     # Remove duplicates
     for i in downstream_raw:
         if i not in downstream_list:
@@ -309,7 +311,7 @@ def capture_chassis_info(selected_vlan, host):
         chassis_dict["downstream"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
 
-    print(chassis_dict)
+    #print(chassis_dict)
     return(chassis_dict)
 
 # Function for running operational commands to multiple devices
@@ -343,8 +345,16 @@ def oper_commands(my_ips):
             if chassis_dict["root_bridge"]:
                 # Search the LLDP dict for the dict with the root port
                 print("-> {} is the root bridge of VLAN {}({})".format(host, chassis_dict["vlan"]["name"],
-                                                                                chassis_dict["vlan"]["tag"]))
-                host = False
+                                                                       chassis_dict["vlan"]["tag"]))
+                my_dict = {}
+                # Populate Dictionary
+                my_dict["name"] = host
+                my_dict["root_bridge"] = True
+                my_dict["root_priority"] = chassis_dict["stp"]["vlan_rb_prio"]
+                # Create downstream peer list
+                print("-> Downstream Peer List:")
+                print(chassis_dict["downstream"])
+
             # This device is not the root bridge, going to walk up to the root bridge
             else:
                 print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
