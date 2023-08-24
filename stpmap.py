@@ -266,6 +266,8 @@ def get_downstream_hosts(lldp_dict, root_port):
             host_int_dict["intf"] = one_int["local_int"]
             downstream_raw.append(host_int_dict)
     # Remove duplicates
+    print("List")
+    print(downstream_raw)
     for i in downstream_raw:
         if i not in downstream_list:
             downstream_list.append(i)
