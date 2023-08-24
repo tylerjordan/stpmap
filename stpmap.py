@@ -204,15 +204,15 @@ def capture_lldp_info(lldpneigh, members):
             for item in members:
                 lldp_dict = {}
                 if li.local_parent != "-" and li.local_parent == item.split(".")[0]:
-                    print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
-                                              li.remote_sysname))
+                    #print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
+                    #                          li.remote_sysname))
                     lldp_dict["local_int"] = li.local_parent
                     lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                     lldp_dict["remote_sysname"] = li.remote_sysname
                     lldp_ld.append(lldp_dict)
                 elif li.local_int == item.split(".")[0]:
-                    print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
-                                              li.remote_sysname))
+                    #print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
+                    #                          li.remote_sysname))
                     lldp_dict["local_int"] = li.local_int
                     lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                     lldp_dict["remote_sysname"] = li.remote_sysname
@@ -220,15 +220,15 @@ def capture_lldp_info(lldpneigh, members):
         else:
             lldp_dict = {}
             if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
-                print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
-                                          li.remote_sysname))
+                #print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
+                #                          li.remote_sysname))
                 lldp_dict["local_int"] = li.local_parent
                 lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                 lldp_dict["remote_sysname"] = li.remote_sysname
                 lldp_ld.append(lldp_dict)
             elif li.local_int == members.split(".")[0]:
-                print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
-                                          li.remote_sysname))
+                #print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
+                #                          li.remote_sysname))
                 lldp_dict["local_int"] = li.local_int
                 lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                 lldp_dict["remote_sysname"] = li.remote_sysname
@@ -275,6 +275,7 @@ def get_downstream_hosts(lldp_dict, root_port):
 def capture_chassis_info(selected_vlan, host):
     chassis_dict = {}
     ip = dev_list[host]
+    topHeading(host, 2)
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         # Raw collected information
