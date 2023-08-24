@@ -275,7 +275,7 @@ def get_downstream_hosts(lldp_dict, root_port):
 def capture_chassis_info(selected_vlan, host):
     chassis_dict = {}
     ip = dev_list[host]
-    topHeading(host, 2)
+    starHeading(host, 5)
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
         # Raw collected information
@@ -321,6 +321,7 @@ def oper_commands(my_ips):
     # Provide selection for sending a single command or multiple commands from a file
     host = None
     selected_vlan = "None"
+    root_bridge_found = False
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     if my_ips:
@@ -344,6 +345,7 @@ def oper_commands(my_ips):
             chassis_dict = capture_chassis_info(selected_vlan, host)
             # Check if this device is the root bridge, this is ideal
             if chassis_dict["root_bridge"]:
+                root_bridge_found = True
                 # Search the LLDP dict for the dict with the root port
                 print("-> {} is the root bridge of VLAN {}({})".format(host, chassis_dict["vlan"]["name"],
                                                                        chassis_dict["vlan"]["tag"]))
@@ -359,9 +361,13 @@ def oper_commands(my_ips):
 
             # This device is not the root bridge, going to walk up to the root bridge
             else:
-                print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
-                                                                        chassis_dict["vlan"]["tag"]))
-                host = chassis_dict["upstream"]
+                if root_bridge_found:
+                    print("-> ")
+                else:
+                    print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
+                                                                            chassis_dict["vlan"]["tag"]))
+                    host = chassis_dict["upstream"]
+
 
         exit()
     else:
