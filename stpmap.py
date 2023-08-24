@@ -277,9 +277,9 @@ def get_downstream_hosts(lldp_dict, root_port):
 def capture_chassis_info(selected_vlan, host):
     chassis_dict = {}
     ip = dev_list[host]
-    print(starHeading(host, 5))
     stdout.write("-> Connecting to " + ip + " ... ")
     with Device(host=ip, user=username, password=password) as jdev:
+        print(starHeading(host, 5))
         # Raw collected information
         # VLAN Info (show vlans)
         vlaninfo = VlanTable(jdev)
@@ -345,7 +345,7 @@ def oper_commands(my_ips):
         while host:
             # Capture from host
             chassis_dict = capture_chassis_info(selected_vlan, host)
-            # Check if this device is the root bridge, this is ideal
+            # Check if this device is the root bridge
             if chassis_dict["root_bridge"]:
                 root_bridge_found = True
                 # Search the LLDP dict for the dict with the root port
@@ -361,10 +361,12 @@ def oper_commands(my_ips):
                 print(chassis_dict["downstream"])
                 host = False
 
-            # This device is not the root bridge, going to walk up to the root bridge
+            # This device is not the root bridge
             else:
+                # Check if the root bridge has already been found
                 if root_bridge_found:
                     print("-> ")
+                # If the root bridge hasn't been found, check the upstream device
                 else:
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                             chassis_dict["vlan"]["tag"]))
