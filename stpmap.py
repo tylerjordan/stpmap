@@ -14,6 +14,7 @@ from jnpr.junos.exception import *
 from jnpr.junos.op.lldp import LLDPNeighborTable
 from jnpr.junos.op.stpbridge import STPBridgeTable
 from jnpr.junos.op.vlan import VlanTable
+from jnpr.junos.op.phyport import PhyPortTable
 from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
 from os.path import join
@@ -177,6 +178,7 @@ def capture_vlan_info(selected_vlan, vlaninfo):
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["members"] = name.members
+            vlan_dict["l3_interface"] = name.l3_interface
     return vlan_dict
 
 def capture_span_info(selected_vlan, stpbridge):
@@ -193,6 +195,9 @@ def capture_span_info(selected_vlan, stpbridge):
             stp_dict["vlan_local_mac"] = vlan_id.local_bridge_mac
             stp_dict["vlan_local_prio"] = vlan_id.local_bridge_priority
             stp_dict["vlan_root_port"] = vlan_id.root_port
+            stp_dict["vlan_root_cost"] = vlan_id.root_cost
+            stp_dict["topo_change_count"] = vlan_id.topo_change_count
+            stp_dict["time_since_last_tc"] = vlan_id.time_since_last_tc
     return stp_dict
 
 def capture_lldp_info(lldpneigh, members):
@@ -295,7 +300,7 @@ def get_downstream_hosts(lldp_dict, root_port):
 def capture_chassis_info(selected_vlan, host):
     chassis_dict = {}
     ip = dev_list[host]
-    stdout.write("-> Connecting to " + ip + " ... ")
+    stdout.write("-> Connecting to " + ip + " ... \n")
     with Device(host=ip, user=username, password=password) as jdev:
         print(starHeading(host, 5))
         # Raw collected information
