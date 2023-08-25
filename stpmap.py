@@ -19,7 +19,7 @@ from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
 from os.path import join
 from getpass import getpass
-#from prettytable import PrettyTable
+from prettytable import PrettyTable
 from sys import stdout
 from lxml import etree
 
@@ -171,7 +171,7 @@ def create_timestamped_log(prefix, extension):
 
 def capture_vlan_info(selected_vlan, vlaninfo):
     vlan_dict = {}
-    print("******* VLAN INFO ******")
+    #print("******* VLAN INFO ******")
     for name in vlaninfo:
         if name.tag == selected_vlan:
             #print("{}: {}: {}".format(name.name, name.tag, name.members))
@@ -183,7 +183,7 @@ def capture_vlan_info(selected_vlan, vlaninfo):
 
 def capture_span_info(selected_vlan, stpbridge):
     stp_dict = {}
-    print("\n******* STP BRIDGE INFO ******")
+    #print("\n******* STP BRIDGE INFO ******")
     for vlan_id in stpbridge:
         if vlan_id.vlan_id == selected_vlan:
             #print("{} | {}({}) | {}({}) | {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
@@ -202,7 +202,7 @@ def capture_span_info(selected_vlan, stpbridge):
 
 def capture_lldp_info(lldpneigh, members):
     lldp_ld = []
-    print("\n******* LLDP NEIGHBORS ******")
+    #print("\n******* LLDP NEIGHBORS ******")
     for li in lldpneigh:
         if type(members) == list:
             for item in members:
@@ -357,7 +357,7 @@ def oper_commands(my_ips):
                 with Device(host=ip, user=username, password=password) as jdev:
                     vlan_list = []
                     vlaninfo = VlanTable(jdev)
-                    vlaninfo.get()
+                    vlaninfo.get(extensive=True)
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
