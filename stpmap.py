@@ -374,8 +374,13 @@ def oper_commands(my_ips):
                 # Search the LLDP dict for the dict with the root port
                 print("-> {} is the root bridge of VLAN {}({})".format(host, chassis_dict["vlan"]["name"],
                                                                        chassis_dict["vlan"]["tag"]))
+                # Generic variables
+                all_chassis["root_bridge"] = host
+                all_chassis["vlan_name"] = chassis_dict["vlan"]["name"]
+                all_chassis["vlan_id"] = chassis_dict["vlan"]["tag"]
+
+                # Chassis variables
                 my_dict = {}
-                # Populate Dictionary
                 my_dict["name"] = host
                 my_dict["root_bridge"] = True
                 my_dict["root_priority"] = chassis_dict["stp"]["vlan_rb_prio"]
@@ -384,10 +389,12 @@ def oper_commands(my_ips):
                 print(chassis_dict["downstream"])
                 print("-> Non Interface List:")
                 print(chassis_dict["non-lldp-intf"])
-                my_dict["vlan_name"] = chassis_dict["vlan"]["name"]
-                my_dict["vlan_id"] = chassis_dict["vlan"]["tag"]
-                host = False
 
+                # Add this chassis to the list
+                all_chassis["chassis"].append(my_dict)
+                print("ALL CHASSIS")
+                print(all_chassis)
+                host = False
             # This device is not the root bridge
             else:
                 # Check if the root bridge has already been found
