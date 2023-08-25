@@ -403,12 +403,12 @@ def oper_commands(my_ips):
             else:
                 # Check if the root bridge has already been found
                 if root_bridge_found:
-                    print("-> {}")
+                    print("-> First Device after Root Bridge")
                 # If the root bridge hasn't been found, check the upstream device
                 else:
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                             chassis_dict["vlan"]["tag"]))
-                    host = chassis_dict["upstream"]
+                    hosts.append(chassis_dict["upstream"])
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
