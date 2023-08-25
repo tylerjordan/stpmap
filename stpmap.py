@@ -391,6 +391,7 @@ def oper_commands(my_ips):
                 print(chassis_dict["non-lldp-intf"])
 
                 # Add this chassis to the list
+                all_chassis["chassis"] = []
                 all_chassis["chassis"].append(my_dict)
                 print("ALL CHASSIS")
                 print(all_chassis)
