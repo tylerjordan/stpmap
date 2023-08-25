@@ -384,11 +384,10 @@ def oper_commands(my_ips):
                 my_dict["name"] = host
                 my_dict["root_bridge"] = True
                 my_dict["root_priority"] = chassis_dict["stp"]["vlan_rb_prio"]
-                # Create downstream peer list
-                print("-> Downstream Peer List:")
-                print(chassis_dict["downstream"])
-                print("-> Non Interface List:")
-                print(chassis_dict["non-lldp-intf"])
+                my_dict["topo_change_count"] = chassis_dict["stp"]["topo_change_count"]
+                my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
+                my_dict["downstream_peers"] = chassis_dict["downstream"]
+                my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
 
                 # Add this chassis to the list
                 all_chassis["chassis"] = []
