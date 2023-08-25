@@ -70,7 +70,7 @@ env_dict = [
      "edge_ports": ["ge-0/0/3"]
      }
 ]
-all_chassis = []
+all_chassis = {}
 
 # Function to determine running environment (Windows/Linux/Mac) and use correct path syntax
 def detect_env():
