@@ -308,20 +308,20 @@ def capture_chassis_info(selected_vlan, host):
         vlaninfo = VlanTable(jdev)
         vlaninfo.get()
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-        print("VLAN DICT")
-        print(vlan_dict)
+        #print("VLAN DICT")
+        #print(vlan_dict)
         # STP Info (show spanning-tree bridge)
         stpbridge = STPBridgeTable(jdev)
         stpbridge.get()
         stp_dict = capture_span_info(selected_vlan, stpbridge)
-        print("STP DICT")
-        print(stp_dict)
+        #print("STP DICT")
+        #print(stp_dict)
         # LLDP Info (show lldp neighbors)
         lldpneigh = LLDPNeighborTable(jdev)
         lldpneigh.get()
         lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
-        print("LLDP DICT")
-        print(lldp_dict)
+        #print("LLDP DICT")
+        #print(lldp_dict)
 
         # Computed variables
         chassis_dict["hostname"] = host
@@ -344,7 +344,7 @@ def capture_chassis_info(selected_vlan, host):
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
-    host = None
+    hosts = []
     selected_vlan = "None"
     root_bridge_found = False
     if not my_ips:
@@ -361,11 +361,11 @@ def oper_commands(my_ips):
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    host = host_from_ip(dev_list, ip)
+                    hosts.append(host_from_ip(dev_list, ip))
         except KeyboardInterrupt:
             print("Exiting Procedure...")
         # Loop over hosts list
-        while host:
+        for host in hosts:
             # Capture from host
             chassis_dict = capture_chassis_info(selected_vlan, host)
             # Check if this device is the root bridge
@@ -389,17 +389,21 @@ def oper_commands(my_ips):
                 my_dict["downstream_peers"] = chassis_dict["downstream"]
                 my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
 
+                if chassis_dict["downstream"]:
+                    for peer in chassis_dict["downstream"]:
+                        hosts.append(peer)
+                        print("-> Added {} to scan list".format(peer))
+
                 # Add this chassis to the list
                 all_chassis["chassis"] = []
                 all_chassis["chassis"].append(my_dict)
                 print("ALL CHASSIS")
                 print(all_chassis)
-                host = False
             # This device is not the root bridge
             else:
                 # Check if the root bridge has already been found
                 if root_bridge_found:
-                    print("-> ")
+                    print("-> {}")
                 # If the root bridge hasn't been found, check the upstream device
                 else:
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
