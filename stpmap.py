@@ -306,7 +306,7 @@ def capture_chassis_info(selected_vlan, host):
         # Raw collected information
         # VLAN Info (show vlans)
         vlaninfo = VlanTable(jdev)
-        vlaninfo.get()
+        vlaninfo.get(extensive=True)
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
         print("VLAN DICT")
         print(vlan_dict)
@@ -357,7 +357,7 @@ def oper_commands(my_ips):
                 with Device(host=ip, user=username, password=password) as jdev:
                     vlan_list = []
                     vlaninfo = VlanTable(jdev)
-                    vlaninfo.get(extensive=True)
+                    vlaninfo.get()
                     for name in vlaninfo:
                         vlan_list.append(name.tag)
                     selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
