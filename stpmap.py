@@ -391,8 +391,8 @@ def oper_commands(my_ips):
 
                 if chassis_dict["downstream"]:
                     for peer in chassis_dict["downstream"]:
-                        hosts.append(peer)
-                        print("-> Added {} to scan list".format(peer))
+                        hosts.append(peer["name"])
+                        print("-> Added {} to scan list".format(peer["name"]))
 
                 # Add this chassis to the list
                 all_chassis["chassis"] = []
