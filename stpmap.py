@@ -404,6 +404,26 @@ def oper_commands(my_ips):
                 # Check if the root bridge has already been found
                 if root_bridge_found:
                     print("-> First Device after Root Bridge")
+
+                    # Chassis variables
+                    my_dict = {}
+                    my_dict["name"] = host
+                    my_dict["root_bridge"] = False
+                    my_dict["local_priority"] = chassis_dict["stp"]["vlan_local_prio"]
+                    my_dict["topo_change_count"] = chassis_dict["stp"]["topo_change_count"]
+                    my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
+                    my_dict["upstream_peer"] = chassis_dict["upstream"]
+                    my_dict["downstream_peers"] = chassis_dict["downstream"]
+                    my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
+
+                    if chassis_dict["downstream"]:
+                        for peer in chassis_dict["downstream"]:
+                            hosts.append(peer["name"])
+                            print("-> Added {} to scan list".format(peer["name"]))
+                    # Add this chassis to the list
+                    all_chassis["chassis"].append(my_dict)
+                    print("ALL CHASSIS")
+                    print(all_chassis)
                 # If the root bridge hasn't been found, check the upstream device
                 else:
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
