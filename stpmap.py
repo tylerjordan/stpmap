@@ -178,7 +178,7 @@ def capture_vlan_info(selected_vlan, vlaninfo):
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["members"] = name.members
-            vlan_dict["l3_interface"] = name.l3_interface
+            vlan_dict["l3interface"] = name.l3interface
     return vlan_dict
 
 def capture_span_info(selected_vlan, stpbridge):
