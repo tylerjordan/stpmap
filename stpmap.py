@@ -340,17 +340,35 @@ def capture_chassis_info(selected_vlan, host):
     #print(chassis_dict)
     return(chassis_dict)
 
+def create_chart():
+    # Specify the Column Names while initializing the Table
+    myTable = PrettyTable(["Host", "Root Bridge Priority", "Upstream Intf", "Upstream Host", "Non-LLDP-Intfs",
+                           "Downstream Intfs", "Downstream Hosts"])
+
+    # Add rows
+    myTable.add_row(["Leanord", "X", "B", "91.2 %"])
+    myTable.add_row(["-", "-", "-", "63.5 %"])
+    myTable.add_row(["-", "-", "-", "90.23 %"])
+    myTable.add_row(["Bernadette", "X", "D", "92.7 %"])
+    myTable.add_row(["Sheldon", "X", "A", "98.2 %"])
+    myTable.add_row(["Raj", "X", "B", "88.1 %"])
+    myTable.add_row(["Amy", "X", "B", "95.0 %"])
+
+    print(myTable)
+
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
     hosts = []
     selected_vlan = "None"
+    backup_rb = { "name": "", "priority": "" }
     root_bridge_found = False
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     if my_ips:
         # Loop over commands and devices
+        backup_rb = {}
         try:
             for ip in my_ips:
                 stdout.write("-> Connecting to " + ip + " ... ")
@@ -403,13 +421,14 @@ def oper_commands(my_ips):
             else:
                 # Check if the root bridge has already been found
                 if root_bridge_found:
-                    print("-> First Device after Root Bridge")
-
                     # Chassis variables
                     my_dict = {}
                     my_dict["name"] = host
                     my_dict["root_bridge"] = False
                     my_dict["local_priority"] = chassis_dict["stp"]["vlan_local_prio"]
+                    if my_dict["local_priority"] > backup_rb["priority"]:
+                        backup_rp["name"] = my_dict["name"]
+                        backup_rp["priority"] = my_dict["local_priority"]
                     my_dict["topo_change_count"] = chassis_dict["stp"]["topo_change_count"]
                     my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
                     my_dict["upstream_peer"] = chassis_dict["upstream"]
@@ -429,6 +448,25 @@ def oper_commands(my_ips):
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                             chassis_dict["vlan"]["tag"]))
                     hosts.append(chassis_dict["upstream"])
+        # Specify the Column Names while initializing the Table
+        myTable = PrettyTable(["Student Name", "Class", "Section", "Percentage"])
+
+        for host in all_chassis["chassis"]:
+            name = ""
+            host_content = []
+            if host["root_bridge"]:
+                name = host["name"] + " (RB)"
+            host_content.append("name")
+        # Add rows
+        myTable.add_row(["Leanord", "X", "B", "91.2 %"])
+        myTable.add_row(["-", "-", "-", "63.5 %"])
+        myTable.add_row(["-", "-", "-", "90.23 %"])
+        myTable.add_row(["Bernadette", "X", "D", "92.7 %"])
+        myTable.add_row(["Sheldon", "X", "A", "98.2 %"])
+        myTable.add_row(["Raj", "X", "B", "88.1 %"])
+        myTable.add_row(["Amy", "X", "B", "95.0 %"])
+
+        print(myTable)
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
