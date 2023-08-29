@@ -365,6 +365,7 @@ def oper_commands(my_ips):
     # Provide selection for sending a single command or multiple commands from a file
     hosts = []
     selected_vlan = "None"
+    key = "upstream_peer"
     root_bridge_found = False
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
@@ -463,8 +464,6 @@ def oper_commands(my_ips):
         #print("Backup RB")
         #print(backup_rb)
         for host in all_chassis["chassis"]:
-            print("Host")
-            print(host)
             adj_name = ""
             host_content = []
             # Populate Host Cell
@@ -477,13 +476,29 @@ def oper_commands(my_ips):
             host_content.append(adj_name)
             # Populate Bridge Priority Cell
             host_content.append(host["local_priority"])
-            # Populate Upstream Interface and Host
-            if host.has_key("upstream_peer"):
+            # Check upstream exists, then populate Upstream Interface and Host or "-" if doesn't exist
+            if key in host.keys():
                 host_content.append(host["upstream_intf"])
                 host_content.append(host["upstream_peer"])
             else:
                 host_content.append("-")
-            #
+            # Get number of non-LLDP interfaces
+            lldp_length = 0
+            lldp_active = 0
+            if not host["non_lldp_intf"]:
+                host_content.append(lldp_length)
+            else:
+                lldp_length = len(host["non_lldp_intf"])
+                for non_lldp_int in host["non_lldp_intf"]:
+                    if non_lldp_int["active"]:
+                        lldp_active += 1
+            if lldp_length:
+                dis = str(lldp_length) + "(" + str(lldp_active) + ")"
+                host_content.append(dis)
+            print("HOST CONTENT")
+            print(host_content)
+            exit()
+
 
         # Add rows
         myTable.add_row(["Leanord", "X", "B", "91.2 %"])
