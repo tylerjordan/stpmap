@@ -174,7 +174,7 @@ def capture_vlan_info(selected_vlan, vlaninfo):
     #print("******* VLAN INFO ******")
     for name in vlaninfo:
         if name.tag == selected_vlan:
-            #print("{}: {}: {}".format(name.name, name.tag, name.members))
+            print("{} | {} | {} | {}".format(name.name, name.tag, name.members, name.l3interface))
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["members"] = name.members
@@ -226,51 +226,51 @@ def capture_lldp_info(lldpneigh, members):
         elif members:
             lldp_dict = {}
             if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
-                #print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
-                #                          li.remote_sysname))
+                print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
+                                          li.remote_sysname))
                 lldp_dict["local_int"] = li.local_parent
                 lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                 lldp_dict["remote_sysname"] = li.remote_sysname
                 lldp_ld.append(lldp_dict)
             elif li.local_int == members.split(".")[0]:
-                #print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
-                #                          li.remote_sysname))
+                print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
+                                          li.remote_sysname))
                 lldp_dict["local_int"] = li.local_int
                 lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                 lldp_dict["remote_sysname"] = li.remote_sysname
                 lldp_ld.append(lldp_dict)
-        # If the member contains nothing
-        else:
-            lldp_dict = {}
-            lldp_ld.append(lldp_dict)
+    # Return LLDP
+    print("LLDP_LD")
+    print(lldp_ld)
     return(lldp_ld)
 
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
     non_lldp_intf = []
     # Check if the list consists of only one vlan interface
-    if type(vlan_dict["members"]) != list:
-        non_lldp_dict = {}
-        # If this vlan interface doesn't exist in the LLDP list, it's either a (non-LLDP) trunk or endpoint
-        if not any(d["local_int"] == vlan_dict["members"].split(".")[0] for d in lldp_dict):
-            non_lldp_dict["intf"] = vlan_dict["members"].split("*")[0]
-            if "*" in vlan_dict["members"]:
-                non_lldp_dict["active"] = True
-            else:
-                non_lldp_dict["active"] = False
-            non_lldp_intf.append(non_lldp_dict)
-    # If there are multiple vlan interfaces to check...
-    else:
-        # Check all the vlan interfaces
-        for vlan_int in vlan_dict["members"]:
+    if vlan_dict["members"] != None:
+        if type(vlan_dict["members"]) != list:
             non_lldp_dict = {}
             # If this vlan interface doesn't exist in the LLDP list, it's either a (non-LLDP) trunk or endpoint
-            if not any(d["local_int"] == vlan_int.split(".")[0] for d in lldp_dict):
-                non_lldp_dict["intf"] = vlan_int.split("*")[0]
-                if "*" in vlan_int:
+            if not any(d["local_int"] == vlan_dict["members"].split(".")[0] for d in lldp_dict):
+                non_lldp_dict["intf"] = vlan_dict["members"].split("*")[0]
+                if "*" in vlan_dict["members"]:
                     non_lldp_dict["active"] = True
                 else:
                     non_lldp_dict["active"] = False
                 non_lldp_intf.append(non_lldp_dict)
+        # If there are multiple vlan interfaces to check...
+        else:
+            # Check all the vlan interfaces
+            for vlan_int in vlan_dict["members"]:
+                non_lldp_dict = {}
+                # If this vlan interface doesn't exist in the LLDP list, it's either a (non-LLDP) trunk or endpoint
+                if not any(d["local_int"] == vlan_int.split(".")[0] for d in lldp_dict):
+                    non_lldp_dict["intf"] = vlan_int.split("*")[0]
+                    if "*" in vlan_int:
+                        non_lldp_dict["active"] = True
+                    else:
+                        non_lldp_dict["active"] = False
+                    non_lldp_intf.append(non_lldp_dict)
     return non_lldp_intf
 
 def get_upstream_host(lldp_dict, root_port):
@@ -317,8 +317,8 @@ def capture_chassis_info(selected_vlan, host):
         vlaninfo = VlanTable(jdev)
         vlaninfo.get(extensive=True)
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-        print("VLAN DICT")
-        print(vlan_dict)
+        #print("VLAN DICT MEMBERS")
+        #print(vlan_dict["members"])
         # STP Info (show spanning-tree bridge)
         stpbridge = STPBridgeTable(jdev)
         stpbridge.get()
@@ -329,8 +329,9 @@ def capture_chassis_info(selected_vlan, host):
         lldpneigh = LLDPNeighborTable(jdev)
         lldpneigh.get()
         lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
-        print("LLDP DICT")
-        print(lldp_dict)
+        #print("LLDP DICT")
+        #print(lldp_dict)
+        # Phy Info (show
 
         # Computed variables
         chassis_dict["hostname"] = host
@@ -338,41 +339,88 @@ def capture_chassis_info(selected_vlan, host):
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
         chassis_dict["lldp"] = lldp_dict
-        if stp_dict["vlan_root_port"] == None:
+        # Check if the mac of the RB and local mac is the same, to check if this is the RB
+        if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
             chassis_dict["root_bridge"] = True
         else:
             chassis_dict["root_bridge"] = False
         chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
         chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
-
+    #print("Chassis Dict")
     #print(chassis_dict)
     return(chassis_dict)
 
 def create_chart():
+    key = "upstream_peer"
     # Specify the Column Names while initializing the Table
-    myTable = PrettyTable(["Host", "Root Bridge Priority", "Upstream Intf", "Upstream Host", "Non-LLDP-Intfs",
+    # Specify the Column Names while initializing the Table
+    print("VLAN Name: {}".format(all_chassis["vlan_name"]))
+    print("VLAN Tag: {}".format(all_chassis["vlan_id"]))
+
+    myTable = PrettyTable(["Host", "Bridge Priority", "IRB Intf", "Upstream Intf", "Upstream Host", "Non-LLDP-Intfs",
                            "Downstream Intfs", "Downstream Hosts"])
-
-    # Add rows
-    myTable.add_row(["Leanord", "X", "B", "91.2 %"])
-    myTable.add_row(["-", "-", "-", "63.5 %"])
-    myTable.add_row(["-", "-", "-", "90.23 %"])
-    myTable.add_row(["Bernadette", "X", "D", "92.7 %"])
-    myTable.add_row(["Sheldon", "X", "A", "98.2 %"])
-    myTable.add_row(["Raj", "X", "B", "88.1 %"])
-    myTable.add_row(["Amy", "X", "B", "95.0 %"])
-
+    for host in all_chassis["chassis"]:
+        adj_name = ""
+        host_content = []
+        # Populate Host Cell
+        if host["root_bridge"]:
+            adj_name = host["name"] + " (RB)"
+        elif host["name"] == all_chassis["backup_root_bridge"]:
+            adj_name = host["name"] + " (BRB)"
+        else:
+            adj_name = host["name"]
+        host_content.append(adj_name)
+        # Populate Bridge Priority Cell
+        host_content.append(host["local_priority"])
+        # Populate IRB Interface Cell
+        if host["l3_interface"] == None:
+            host_content.append("-")
+        else:
+            host_content.append(host["l3_interface"])
+        # Check upstream exists, then populate Upstream Interface and Host or "-" if doesn't exist
+        if key in host.keys():
+            host_content.append(host["upstream_intf"])
+            host_content.append(host["upstream_peer"])
+        else:
+            host_content.append("-")
+            host_content.append("-")
+        # Get number of non-LLDP interfaces
+        lldp_length = 0
+        lldp_active = 0
+        if not host["non_lldp_intf"]:
+            host_content.append(lldp_length)
+        else:
+            lldp_length = len(host["non_lldp_intf"])
+            for non_lldp_int in host["non_lldp_intf"]:
+                if non_lldp_int["active"]:
+                    lldp_active += 1
+        if lldp_length:
+            dis = str(lldp_length) + "(" + str(lldp_active) + ")"
+            host_content.append(dis)
+        # Populate Downstream Interfaces Cells
+        first_intf = True
+        if not host["downstream_peers"]:
+            host_content.append("-")
+            host_content.append("-")
+            myTable.add_row(host_content)
+        else:
+            for down_peer in host["downstream_peers"]:
+                if first_intf:
+                    first_intf = False
+                else:
+                    host_content = ["-", "-", "-", "-", "-", "-"]
+                host_content.append(down_peer["intf"])
+                host_content.append(down_peer["name"])
+                myTable.add_row(host_content)
     print(myTable)
 
 # Function for running operational commands to multiple devices
 def oper_commands(my_ips):
     print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
-    hosts = []
     selected_vlan = "None"
-    key = "upstream_peer"
-    root_bridge_found = False
+    hosts = []
     if not my_ips:
         my_ips = chooseDevices(iplist_dir)
     if my_ips:
@@ -392,6 +440,9 @@ def oper_commands(my_ips):
         except KeyboardInterrupt:
             print("Exiting Procedure...")
         # Loop over hosts list
+        root_bridge_found = False
+        all_chassis["chassis"] = []
+        # Loop over hosts in the list
         for host in hosts:
             # Capture from host
             #print("Host: {}".format(host))
@@ -417,6 +468,7 @@ def oper_commands(my_ips):
                 my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
                 my_dict["downstream_peers"] = chassis_dict["downstream_peers"]
                 my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
+                my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
 
                 if chassis_dict["downstream_peers"]:
                     for peer in chassis_dict["downstream_peers"]:
@@ -424,10 +476,7 @@ def oper_commands(my_ips):
                         print("-> Added {} to scan list".format(peer["name"]))
 
                 # Add this chassis to the list
-                all_chassis["chassis"] = []
                 all_chassis["chassis"].append(my_dict)
-                #print("ALL CHASSIS")
-                #print(all_chassis)
             # This device is not the root bridge
             else:
                 # Check if the root bridge has already been found
@@ -447,6 +496,7 @@ def oper_commands(my_ips):
                     my_dict["upstream_intf"] = chassis_dict["upstream_peer"]["intf"]
                     my_dict["downstream_peers"] = chassis_dict["downstream_peers"]
                     my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
+                    my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
                     # Add downstream interfaces
                     if chassis_dict["downstream_peers"]:
                         for peer in chassis_dict["downstream_peers"]:
@@ -464,59 +514,10 @@ def oper_commands(my_ips):
                     hosts.append(chassis_dict["upstream_peer"]["name"])
             # Add the backup root bridge name to the large dict
             all_chassis["backup_root_bridge"] = backup_rb["name"]
-        # Specify the Column Names while initializing the Table
-        myTable = PrettyTable(["Host", "Bridge Priority", "Upstream Intf", "Upstream Host", "Non-LLDP-Intfs",
-                               "Downstream Intfs", "Downstream Hosts"])
-        for host in all_chassis["chassis"]:
-            adj_name = ""
-            host_content = []
-            # Populate Host Cell
-            if host["root_bridge"]:
-                adj_name = host["name"] + " (RB)"
-            elif host["name"] == all_chassis["backup_root_bridge"]:
-                adj_name = host["name"] + " (BRB)"
-            else:
-                adj_name = host["name"]
-            host_content.append(adj_name)
-            # Populate Bridge Priority Cell
-            host_content.append(host["local_priority"])
-            # Check upstream exists, then populate Upstream Interface and Host or "-" if doesn't exist
-            if key in host.keys():
-                host_content.append(host["upstream_intf"])
-                host_content.append(host["upstream_peer"])
-            else:
-                host_content.append("-")
-                host_content.append("-")
-            # Get number of non-LLDP interfaces
-            lldp_length = 0
-            lldp_active = 0
-            if not host["non_lldp_intf"]:
-                host_content.append(lldp_length)
-            else:
-                lldp_length = len(host["non_lldp_intf"])
-                for non_lldp_int in host["non_lldp_intf"]:
-                    if non_lldp_int["active"]:
-                        lldp_active += 1
-            if lldp_length:
-                dis = str(lldp_length) + "(" + str(lldp_active) + ")"
-                host_content.append(dis)
-            # Populate Downstream Interfaces Cells
-            first_intf = True
-            if not host["downstream_peers"]:
-                host_content.append("-")
-                host_content.append("-")
-                myTable.add_row(host_content)
-            else:
-                for down_peer in host["downstream_peers"]:
-                    if first_intf:
-                        first_intf = False
-                    else:
-                        host_content = ["-", "-", "-", "-", "-"]
-                    host_content.append(down_peer["intf"])
-                    host_content.append(down_peer["name"])
-                    myTable.add_row(host_content)
-        print(myTable)
-        exit()
+        #print("ALL CHASSIS")
+        #print(all_chassis)
+        # Print the table
+        create_chart()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
 
