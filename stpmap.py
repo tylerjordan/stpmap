@@ -317,20 +317,25 @@ def capture_chassis_info(selected_vlan, host):
         vlaninfo = VlanTable(jdev)
         vlaninfo.get(extensive=True)
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-        #print("VLAN DICT MEMBERS")
-        #print(vlan_dict["members"])
+        print("VLAN DICT")
+        print(vlan_dict)
         # STP Info (show spanning-tree bridge)
         stpbridge = STPBridgeTable(jdev)
         stpbridge.get()
         stp_dict = capture_span_info(selected_vlan, stpbridge)
-        #print("STP DICT")
-        #print(stp_dict)
-        # LLDP Info (show lldp neighbors)
-        lldpneigh = LLDPNeighborTable(jdev)
-        lldpneigh.get()
-        lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
-        #print("LLDP DICT")
-        #print(lldp_dict)
+        print("STP DICT")
+        print(stp_dict)
+        # Check if vlan_dict and stp_dict are populated
+        if vlan_dict:
+            # LLDP Info (show lldp neighbors)
+            lldpneigh = LLDPNeighborTable(jdev)
+            lldpneigh.get()
+            lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
+        # If no vlan or stp information exists, provide an empty dict
+        else:
+            lldp_dict = {}
+        print("LLDP DICT")
+        print(lldp_dict)
         # Phy Info (show
 
         # Computed variables
@@ -339,20 +344,23 @@ def capture_chassis_info(selected_vlan, host):
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
         chassis_dict["lldp"] = lldp_dict
-        # Check if the mac of the RB and local mac is the same, to check if this is the RB
-        if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
-            chassis_dict["root_bridge"] = True
-        else:
-            chassis_dict["root_bridge"] = False
-        chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
-        chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
-        chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
+        # Check if vlan dict exists
+        if vlan_dict:
+            # Check if the mac of the RB and local mac is the same, to check if this is the RB
+            if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
+                chassis_dict["root_bridge"] = True
+            else:
+                chassis_dict["root_bridge"] = False
+            chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
+            chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
+            chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
     #print("Chassis Dict")
     #print(chassis_dict)
     return(chassis_dict)
 
 def create_chart():
     key = "upstream_peer"
+    rb_key = "root_bridge"
     # Specify the Column Names while initializing the Table
     # Specify the Column Names while initializing the Table
     print("VLAN Name: {}".format(all_chassis["vlan_name"]))
@@ -364,55 +372,61 @@ def create_chart():
         adj_name = ""
         host_content = []
         # Populate Host Cell
-        if host["root_bridge"]:
-            adj_name = host["name"] + " (RB)"
-        elif host["name"] == all_chassis["backup_root_bridge"]:
-            adj_name = host["name"] + " (BRB)"
-        else:
-            adj_name = host["name"]
-        host_content.append(adj_name)
-        # Populate Bridge Priority Cell
-        host_content.append(host["local_priority"])
-        # Populate IRB Interface Cell
-        if host["l3_interface"] == None:
-            host_content.append("-")
-        else:
-            host_content.append(host["l3_interface"])
-        # Check upstream exists, then populate Upstream Interface and Host or "-" if doesn't exist
-        if key in host.keys():
-            host_content.append(host["upstream_intf"])
-            host_content.append(host["upstream_peer"])
-        else:
-            host_content.append("-")
-            host_content.append("-")
-        # Get number of non-LLDP interfaces
-        lldp_length = 0
-        lldp_active = 0
-        if not host["non_lldp_intf"]:
-            host_content.append(lldp_length)
-        else:
-            lldp_length = len(host["non_lldp_intf"])
-            for non_lldp_int in host["non_lldp_intf"]:
-                if non_lldp_int["active"]:
-                    lldp_active += 1
-        if lldp_length:
-            dis = str(lldp_length) + "(" + str(lldp_active) + ")"
-            host_content.append(dis)
-        # Populate Downstream Interfaces Cells
-        first_intf = True
-        if not host["downstream_peers"]:
-            host_content.append("-")
-            host_content.append("-")
-            myTable.add_row(host_content)
-        else:
-            for down_peer in host["downstream_peers"]:
-                if first_intf:
-                    first_intf = False
-                else:
-                    host_content = ["-", "-", "-", "-", "-", "-"]
-                host_content.append(down_peer["intf"])
-                host_content.append(down_peer["name"])
+        if rb_key in host.keys():
+            if host["root_bridge"]:
+                adj_name = host["name"] + " (RB)"
+            elif host["name"] == all_chassis["backup_root_bridge"]:
+                adj_name = host["name"] + " (BRB)"
+            else:
+                adj_name = host["name"]
+            host_content.append(adj_name)
+            # Populate Bridge Priority Cell
+            host_content.append(host["local_priority"])
+            # Populate IRB Interface Cell
+            if host["l3_interface"] == None:
+                host_content.append("-")
+            else:
+                host_content.append(host["l3_interface"])
+            # Check upstream exists, then populate Upstream Interface and Host or "-" if doesn't exist
+            if key in host.keys():
+                host_content.append(host["upstream_intf"])
+                host_content.append(host["upstream_peer"])
+            else:
+                host_content.append("-")
+                host_content.append("-")
+            # Get number of non-LLDP interfaces
+            lldp_length = 0
+            lldp_active = 0
+            if not host["non_lldp_intf"]:
+                host_content.append(lldp_length)
+            else:
+                lldp_length = len(host["non_lldp_intf"])
+                for non_lldp_int in host["non_lldp_intf"]:
+                    if non_lldp_int["active"]:
+                        lldp_active += 1
+            if lldp_length:
+                dis = str(lldp_length) + "(" + str(lldp_active) + ")"
+                host_content.append(dis)
+            # Populate Downstream Interfaces Cells
+            first_intf = True
+            if not host["downstream_peers"]:
+                host_content.append("-")
+                host_content.append("-")
                 myTable.add_row(host_content)
+            else:
+                for down_peer in host["downstream_peers"]:
+                    if first_intf:
+                        first_intf = False
+                    else:
+                        host_content = ["-", "-", "-", "-", "-", "-"]
+                    host_content.append(down_peer["intf"])
+                    host_content.append(down_peer["name"])
+                    myTable.add_row(host_content)
+        # Host the deosn't have VLAN
+        else:
+            adj_name = host["name"] + " (NV)"
+            host_content = [adj_name, "-", "-", "-", "-", "-", "-", "-"]
+            myTable.add_row(host_content)
     print(myTable)
 
 # Function for running operational commands to multiple devices
@@ -448,72 +462,79 @@ def oper_commands(my_ips):
             #print("Host: {}".format(host))
             chassis_dict = capture_chassis_info(selected_vlan, host)
             # Check if this device is the root bridge
-            if chassis_dict["root_bridge"]:
-                root_bridge_found = True
-                # Search the LLDP dict for the dict with the root port
-                print("-> {} is the root bridge of VLAN {}({})".format(host, chassis_dict["vlan"]["name"],
-                                                                       chassis_dict["vlan"]["tag"]))
-                # Generic variables
-                all_chassis["root_bridge"] = host
-                all_chassis["vlan_name"] = chassis_dict["vlan"]["name"]
-                all_chassis["vlan_id"] = chassis_dict["vlan"]["tag"]
+            if chassis_dict["vlan"]:
+                if chassis_dict["root_bridge"]:
+                    root_bridge_found = True
+                    # Search the LLDP dict for the dict with the root port
+                    print("-> {} is the root bridge of VLAN {}({})".format(host, chassis_dict["vlan"]["name"],
+                                                                           chassis_dict["vlan"]["tag"]))
+                    # Generic variables
+                    all_chassis["root_bridge"] = host
+                    all_chassis["vlan_name"] = chassis_dict["vlan"]["name"]
+                    all_chassis["vlan_id"] = chassis_dict["vlan"]["tag"]
 
-                # Chassis variables
-                my_dict = {}
-                my_dict["name"] = host
-                my_dict["root_bridge"] = True
-                my_dict["local_priority"] = chassis_dict["stp"]["vlan_local_prio"]
-                my_dict["root_priority"] = chassis_dict["stp"]["vlan_rb_prio"]
-                my_dict["topo_change_count"] = chassis_dict["stp"]["topo_change_count"]
-                my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
-                my_dict["downstream_peers"] = chassis_dict["downstream_peers"]
-                my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
-                my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
-
-                if chassis_dict["downstream_peers"]:
-                    for peer in chassis_dict["downstream_peers"]:
-                        hosts.append(peer["name"])
-                        print("-> Added {} to scan list".format(peer["name"]))
-
-                # Add this chassis to the list
-                all_chassis["chassis"].append(my_dict)
-            # This device is not the root bridge
-            else:
-                # Check if the root bridge has already been found
-                if root_bridge_found:
                     # Chassis variables
                     my_dict = {}
                     my_dict["name"] = host
-                    my_dict["root_bridge"] = False
+                    my_dict["root_bridge"] = True
                     my_dict["local_priority"] = chassis_dict["stp"]["vlan_local_prio"]
-                    #print("Local: {} | Backup: {}".format(my_dict["local_priority"], backup_rb["priority"]))
-                    if int(my_dict["local_priority"]) < backup_rb["priority"]:
-                        backup_rb["name"] = my_dict["name"]
-                        backup_rb["priority"] = int(my_dict["local_priority"])
+                    my_dict["root_priority"] = chassis_dict["stp"]["vlan_rb_prio"]
                     my_dict["topo_change_count"] = chassis_dict["stp"]["topo_change_count"]
                     my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
-                    my_dict["upstream_peer"] = chassis_dict["upstream_peer"]["name"]
-                    my_dict["upstream_intf"] = chassis_dict["upstream_peer"]["intf"]
                     my_dict["downstream_peers"] = chassis_dict["downstream_peers"]
                     my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
                     my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
-                    # Add downstream interfaces
+
                     if chassis_dict["downstream_peers"]:
                         for peer in chassis_dict["downstream_peers"]:
                             hosts.append(peer["name"])
                             print("-> Added {} to scan list".format(peer["name"]))
+
                     # Add this chassis to the list
                     all_chassis["chassis"].append(my_dict)
-                    #print("ALL CHASSIS")
-                    #print(all_chassis)
-                # If the root bridge hasn't been found, check the upstream device
+                # This device is not the root bridge
                 else:
-                    print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
-                                                                            chassis_dict["vlan"]["tag"]))
-                    # Append the upstream device name for the next device to check
-                    hosts.append(chassis_dict["upstream_peer"]["name"])
-            # Add the backup root bridge name to the large dict
-            all_chassis["backup_root_bridge"] = backup_rb["name"]
+                    # Check if the root bridge has already been found
+                    if root_bridge_found:
+                        # Chassis variables
+                        my_dict = {}
+                        my_dict["name"] = host
+                        my_dict["root_bridge"] = False
+                        my_dict["local_priority"] = chassis_dict["stp"]["vlan_local_prio"]
+                        #print("Local: {} | Backup: {}".format(my_dict["local_priority"], backup_rb["priority"]))
+                        if int(my_dict["local_priority"]) < backup_rb["priority"]:
+                            backup_rb["name"] = my_dict["name"]
+                            backup_rb["priority"] = int(my_dict["local_priority"])
+                        my_dict["topo_change_count"] = chassis_dict["stp"]["topo_change_count"]
+                        my_dict["time_since_last_tc"] = chassis_dict["stp"]["time_since_last_tc"]
+                        my_dict["upstream_peer"] = chassis_dict["upstream_peer"]["name"]
+                        my_dict["upstream_intf"] = chassis_dict["upstream_peer"]["intf"]
+                        my_dict["downstream_peers"] = chassis_dict["downstream_peers"]
+                        my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
+                        my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
+                        # Add downstream interfaces
+                        if chassis_dict["downstream_peers"]:
+                            for peer in chassis_dict["downstream_peers"]:
+                                hosts.append(peer["name"])
+                                print("-> Added {} to scan list".format(peer["name"]))
+                        # Add this chassis to the list
+                        all_chassis["chassis"].append(my_dict)
+                        #print("ALL CHASSIS")
+                        #print(all_chassis)
+                    # If the root bridge hasn't been found, check the upstream device
+                    else:
+                        print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
+                                                                                chassis_dict["vlan"]["tag"]))
+                        # Append the upstream device name for the next device to check
+                        hosts.append(chassis_dict["upstream_peer"]["name"])
+                # Add the backup root bridge name to the large dict
+                all_chassis["backup_root_bridge"] = backup_rb["name"]
+            # This chassis doesn't have the chosen VLAN
+            else:
+                my_dict = {}
+                my_dict["name"] = host
+                my_dict["no_vlan"] = True
+                all_chassis["chassis"].append(my_dict)
         #print("ALL CHASSIS")
         #print(all_chassis)
         # Print the table
