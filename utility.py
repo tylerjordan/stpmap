@@ -11,8 +11,10 @@ import paramiko  # https://github.com/paramiko/paramiko for -c -mc -put -get
 import subprocess
 import datetime
 import platform
+import json
 import operator
 import time
+import pprint
 
 from os import listdir
 from os.path import isfile, join, exists
@@ -375,6 +377,20 @@ def csvListDict(fileName, keys=''):
     else:
         print("File Import Complete!")
     return myListDict
+
+# Converts JSON file to Dictionary
+def json_to_dict(fileName):
+    file = open(fileName, 'r')
+    json_data = json.load(file)
+    #print(type(json_data))
+    #for key, value in json_data.items():
+    #    print(f"\nKey: {key}")
+    #    print(f"Value: {value}\n")
+    #pp = pprint.PrettyPrinter(depth=8)
+    #print("PPRINT")
+    #pp.pprint(json_data)
+    file.close()
+    return json_data
 
 # Converts CSV file to Dictionary
 def csv_to_dict(filePathName):
