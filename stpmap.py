@@ -112,7 +112,7 @@ def detect_env():
         temp_dir = "./temp/"
 
     credsCSV = os.path.join(dir_path, "pass.csv")
-    jsonFile = os.path.join(dir_path, "vlan.json")
+    jsonFile = os.path.join(dir_path, "vlan-ext.json")
 
 # Handles arguments provided at the command line
 def getargs(argv):
@@ -183,18 +183,38 @@ def capture_vlan_info(selected_vlan, vlaninfo):
             vlan_dict["l3interface"] = name.l3interface
     return vlan_dict
 
-# This function assumes capturing "show spanning-tree bridge | display json"
+# This function assumes capturing "show vlan extensive | display json" output
 def capture_json_vlan_info(selected_vlan, raw_dict):
     vlan_dict = {}
+    vlan_found = False
     for l1 in raw_dict["l2ng-l2ald-vlan-instance-information"]:
         for l2 in l1["l2ng-l2ald-vlan-instance-group"]:
-            for vtag in l2["l2ng-l2ald-vlan-tag"]:
-                if vtag["data"] == selected_vlan:
-                    print("Matched selected vlan!")
-                #vlan_dict["name"] = l2["l2ng-l2rtb-vlan-name"]
-                #vlan_dict["tag"] = l2["l2ng-l2rtb-vlan-tag"]
-            #print("VLAN INFO")
-            #print(vlan_dict)
+            if l2["l2ng-l2rtb-vlan-tag"]:
+                for vtag in l2["l2ng-l2rtb-vlan-tag"]:
+                    if vtag["data"] == selected_vlan:
+                        vlan_dict["tag"] = vtag["data"]
+                        print("Found vlan {}".format(vtag["data"]))
+                        vlan_found = True
+                        break
+            if vlan_found:
+                intf_list = []
+                for vname in l2["l2ng-l2rtb-vlan-name"]:
+                    vlan_dict["name"] = vname["data"]
+                    break
+                for l3 in l2["l2ng-l2rtb-vlan-member"]:
+                    for vmember in l3["l2ng-l2rtb-vlan-member-interface"]:
+                        intf_list.append(vmember["data"])
+                        break
+                vlan_dict["members"] = intf_list
+                for l3interface in l2["l2ng-l2rtb-vlan-l3-interface"]:
+                    vlan_dict["l3interface"] = l3interface["data"]
+                    break
+                break
+        # If the vlan has been found, break out of the top level loop
+        if vlan_found:
+            break
+    print("VLAN STUFF")
+    print(vlan_dict)
     exit()
 
 def capture_span_info(selected_vlan, stpbridge):
@@ -216,12 +236,21 @@ def capture_span_info(selected_vlan, stpbridge):
             stp_dict["time_since_last_tc"] = vlan_id.time_since_last_tc
     return stp_dict
 
+# This function assumes capturing "show spanning-tree bridge | display json" output
 def capture_json_stp_info(selected_vlan, raw_dict):
-    vlan_dict = {}
+    stp_dict = {}
+    stp_found = False
     for l1 in raw_dict["stp-bridge"]:
         for l2 in l1["vst-bridge-parameters"]:
             for vlan_id in l2["vlan-id"]:
-                vlan_dict["tag"] = vlan_id["data"]
+                if vlan_id["data"] == selected_vlan:
+                    stp_dict["vlan_id"] = vlan_id["data"]
+                    stp_found = True
+                    break
+            if stp_found:
+                for rb_info in l2["root-bridge"]:
+                    for rb_mac in rb_info["bridge-mac"]:
+                        stp_dict["vlan_rb_mac"]
 
 
     exit()
@@ -343,8 +372,8 @@ def capture_chassis_info(selected_vlan, host):
         vlaninfo = VlanTable(jdev)
         vlaninfo.get(extensive=True)
         vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-        print("VLAN DICT")
-        print(vlan_dict)
+        #print("VLAN DICT")
+        #print(vlan_dict)
         # STP Info (show spanning-tree bridge)
         stpbridge = STPBridgeTable(jdev)
         stpbridge.get()
