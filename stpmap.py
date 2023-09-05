@@ -219,7 +219,6 @@ def capture_json_vlan_info(selected_vlan, raw_dict):
             break
     print("VLAN STUFF")
     print(vlan_dict)
-    exit()
 
 def capture_span_info(selected_vlan, stpbridge):
     stp_dict = {}
@@ -275,7 +274,6 @@ def capture_json_stp_info(selected_vlan, raw_dict):
             break
     print("STP STUFF")
     print(stp_dict)
-    exit()
 
 def capture_lldp_info(lldpneigh, members):
     lldp_ld = []
@@ -656,6 +654,7 @@ def oper_commands(my_ips):
         #create_stp_paths()
         capture_json_vlan_info(selected_vlan, json_to_dict(vlan_json_file))
         capture_json_stp_info(selected_vlan, json_to_dict(stp_json_file))
+        exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
 
