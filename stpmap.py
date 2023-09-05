@@ -88,7 +88,9 @@ def detect_env():
     global dir_path
     global username
     global password
-    global jsonFile
+    global vlan_json_file
+    global stp_json_file
+    global lldp_json_file
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
     if platform.system().lower() == "windows":
@@ -112,7 +114,9 @@ def detect_env():
         temp_dir = "./temp/"
 
     credsCSV = os.path.join(dir_path, "pass.csv")
-    jsonFile = os.path.join(dir_path, "vlan-ext.json")
+    vlan_json_file = os.path.join(dir_path, "vlan-ext.json")
+    stp_json_file = os.path.join(dir_path, "stp.json")
+    lldp_json_file = os.path.join(dir_path, "lldp.json")
 
 # Handles arguments provided at the command line
 def getargs(argv):
@@ -250,9 +254,27 @@ def capture_json_stp_info(selected_vlan, raw_dict):
             if stp_found:
                 for rb_info in l2["root-bridge"]:
                     for rb_mac in rb_info["bridge-mac"]:
-                        stp_dict["vlan_rb_mac"]
-
-
+                        stp_dict["vlan_rb_mac"] = rb_mac["data"]
+                    for rb_prio in rb_info["bridge-priority"]:
+                        stp_dict["vlan_rb_prio"] = rb_prio["data"]
+                for local_info in l2["this-bridge"]:
+                    for local_mac in local_info["bridge-mac"]:
+                        stp_dict["vlan_local_mac"] = local_mac["data"]
+                    for local_prio in local_info["bridge-priority"]:
+                        stp_dict["vlan_local_prio"] = local_prio["data"]
+                for root_port in l2["root-port"]:
+                    stp_dict["vlan_root_port"] = root_port["data"]
+                for root_cost in l2["root-cost"]:
+                    stp_dict["vlan_root_cost"] = root_cost["data"]
+                for topo_change_count in l2["topology-change-count"]:
+                    stp_dict["topo_change_count"] = topo_change_count["data"]
+                for time_since_last_tc in l2["time-since-last-tc"]:
+                    stp_dict["time_since_last_tc"] = time_since_last_tc["data"]
+                break
+        if stp_found:
+            break
+    print("STP STUFF")
+    print(stp_dict)
     exit()
 
 def capture_lldp_info(lldpneigh, members):
@@ -632,7 +654,8 @@ def oper_commands(my_ips):
         #create_chart()
         #create_stp_stats()
         #create_stp_paths()
-        capture_json_vlan_info(selected_vlan, json_to_dict(jsonFile))
+        capture_json_vlan_info(selected_vlan, json_to_dict(vlan_json_file))
+        capture_json_stp_info(selected_vlan, json_to_dict(stp_json_file))
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
 
