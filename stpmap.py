@@ -319,6 +319,13 @@ def capture_lldp_info(lldpneigh, members):
     #print(lldp_ld)
     return(lldp_ld)
 
+# This function assumes capturing "show spanning-tree bridge | display json" output
+def capture_json_lldp_info(selected_vlan, raw_dict):
+    lldp_dict = {}
+    lldp_found = False
+    for l1 in raw_dict["stp-bridge"]:
+        for l2 in l1["vst-bridge-parameters"]:
+
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
     non_lldp_intf = []
     # Check if the list consists of only one vlan interface
