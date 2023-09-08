@@ -326,11 +326,13 @@ def capture_json_lldp_info(selected_vlan, raw_dict, members):
     lldp_ld = []
     lldp_found = False
     for l1 in raw_dict["lldp-neighbors-information"]:
+        lldp_dict = {}
         for l2 in l1["lldp-neighbor-information"]:
-            lldp_dict = {}
             for local_port in l2["lldp-local-port-id"]:
                 for member in members:
-                    if local_port["data"] == selected_vlan:
+                    #print("Member: {}".format(member))
+                    #print("Local Port: {}".format(local_port["data"]))
+                    if local_port["data"] == member.split(".")[0]:
                         lldp_dict["local_int"] = local_port["data"]
                         lldp_found = True
                         break
@@ -340,10 +342,10 @@ def capture_json_lldp_info(selected_vlan, raw_dict, members):
                 for remote_sysname in l2["lldp-remote-system-name"]:
                     lldp_dict["remote_sysname"] = remote_sysname["data"]
                 lldp_ld.append(lldp_dict)
-                break
-        lldp_found = False
-    print("LLDP STUFF")
-    print(lldp_dict)
+                lldp_found = False
+    print("LLDP LD")
+    print(lldp_ld)
+    exit()
     return(lldp_ld)
 
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
