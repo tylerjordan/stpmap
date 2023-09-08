@@ -219,6 +219,7 @@ def capture_json_vlan_info(selected_vlan, raw_dict):
             break
     print("VLAN STUFF")
     print(vlan_dict)
+    return(vlan_dict)
 
 def capture_span_info(selected_vlan, stpbridge):
     stp_dict = {}
@@ -274,6 +275,7 @@ def capture_json_stp_info(selected_vlan, raw_dict):
             break
     print("STP STUFF")
     print(stp_dict)
+    return(stp_dict)
 
 def capture_lldp_info(lldpneigh, members):
     lldp_ld = []
@@ -320,11 +322,29 @@ def capture_lldp_info(lldpneigh, members):
     return(lldp_ld)
 
 # This function assumes capturing "show spanning-tree bridge | display json" output
-def capture_json_lldp_info(selected_vlan, raw_dict):
-    lldp_dict = {}
+def capture_json_lldp_info(selected_vlan, raw_dict, members):
+    lldp_ld = []
     lldp_found = False
-    for l1 in raw_dict["stp-bridge"]:
-        for l2 in l1["vst-bridge-parameters"]:
+    for l1 in raw_dict["lldp-neighbors-information"]:
+        for l2 in l1["lldp-neighbor-information"]:
+            lldp_dict = {}
+            for local_port in l2["lldp-local-port-id"]:
+                for member in members:
+                    if local_port["data"] == selected_vlan:
+                        lldp_dict["local_int"] = local_port["data"]
+                        lldp_found = True
+                        break
+            if lldp_found:
+                for remote_chassis_id in l2["lldp-remote-chassis-id"]:
+                    lldp_dict["remote_chassis_id"] = remote_chassis_id["data"]
+                for remote_sysname in l2["lldp-remote-system-name"]:
+                    lldp_dict["remote_sysname"] = remote_sysname["data"]
+                lldp_ld.append(lldp_dict)
+                break
+        lldp_found = False
+    print("LLDP STUFF")
+    print(lldp_dict)
+    return(lldp_ld)
 
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
     non_lldp_intf = []
@@ -659,8 +679,9 @@ def oper_commands(my_ips):
         #create_chart()
         #create_stp_stats()
         #create_stp_paths()
-        capture_json_vlan_info(selected_vlan, json_to_dict(vlan_json_file))
-        capture_json_stp_info(selected_vlan, json_to_dict(stp_json_file))
+        vlan_dict = capture_json_vlan_info(selected_vlan, json_to_dict(vlan_json_file))
+        stp_dict = capture_json_stp_info(selected_vlan, json_to_dict(stp_json_file))
+        lldp_dict = capture_json_lldp_info(selected_vlan, json_to_dict(lldp_json_file), vlan_dict["members"])
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
