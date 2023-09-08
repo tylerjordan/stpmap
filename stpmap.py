@@ -567,9 +567,18 @@ def create_chart():
             myTable.add_row(host_content)
     #print(myTable)
 
+def stp_map_files():
+    print("*" * 50 + "\n" + " " * 10 + "STP MAP using Network\n" + "*" * 50)
+    # Provide selection for sending a single command or multiple commands from a file
+    selected_vlan = "None"
+    hosts = []
+    host = getOptionAnswer("Select a starting Host", dev_list.keys())
+    print("Host: {}".format(host))
+    exit()
+
 # Function for running operational commands to multiple devices
-def oper_commands(my_ips):
-    print("*" * 50 + "\n" + " " * 10 + "OPERATIONAL COMMANDS\n" + "*" * 50)
+def stp_map_net(my_ips):
+    print("*" * 50 + "\n" + " " * 10 + "STP MAP using Network\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
     selected_vlan = "None"
     hosts = []
@@ -701,7 +710,7 @@ if __name__ == "__main__":
     password = getpass(prompt="\nEnter your password: ")
 
     # Define menu options
-    my_options = ['Scan Vlans', 'Quit']
+    my_options = ['Scan Vlans (Files)', 'Scan Vlans (Network)', 'Quit']
     my_ips = []
 
     # Get menu selection
@@ -710,6 +719,8 @@ if __name__ == "__main__":
         print("*" * 50 + "\n" + " " * 10 + "JSHOW: MAIN MENU\n" + "*" * 50)
         answer = getOptionAnswerIndex('Make a Selection', my_options)
         if answer == "1":
-            oper_commands(my_ips)
+            stp_map_files()
         elif answer == "2":
+            stp_map_net(my_ips)
+        elif answer == "3":
             quit()
