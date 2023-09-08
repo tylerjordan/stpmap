@@ -410,54 +410,72 @@ def get_downstream_hosts(lldp_dict, root_port):
             downstream_list.append(i)
     return downstream_list
 
-def capture_chassis_info(selected_vlan, host):
+def capture_chassis_info(selected_vlan, host, using_network):
     chassis_dict = {}
     ip = dev_list[host]
-    stdout.write("-> Connecting to " + ip + " ... \n")
-    with Device(host=ip, user=username, password=password) as jdev:
-        print(starHeading(host, 5))
-        # Raw collected information
-        # VLAN Info (show vlans)
-        vlaninfo = VlanTable(jdev)
-        vlaninfo.get(extensive=True)
-        vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
-        #print("VLAN DICT")
-        #print(vlan_dict)
-        # STP Info (show spanning-tree bridge)
-        stpbridge = STPBridgeTable(jdev)
-        stpbridge.get()
-        stp_dict = capture_span_info(selected_vlan, stpbridge)
-        #print("STP DICT")
-        #print(stp_dict)
-        # Check if vlan_dict and stp_dict are populated
-        if vlan_dict:
-            # LLDP Info (show lldp neighbors)
-            lldpneigh = LLDPNeighborTable(jdev)
-            lldpneigh.get()
-            lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
-        # If no vlan or stp information exists, provide an empty dict
-        else:
-            lldp_dict = {}
-        #print("LLDP DICT")
-        #print(lldp_dict)
-        # Phy Info (show
-
-        # Computed variables
-        chassis_dict["hostname"] = host
-        chassis_dict["ip"] = ip
-        chassis_dict["vlan"] = vlan_dict
-        chassis_dict["stp"] = stp_dict
-        chassis_dict["lldp"] = lldp_dict
-        # Check if vlan dict exists
-        if vlan_dict:
-            # Check if the mac of the RB and local mac is the same, to check if this is the RB
-            if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
-                chassis_dict["root_bridge"] = True
+    if using_network:
+        stdout.write("-> Connecting to " + ip + " ... \n")
+        with Device(host=ip, user=username, password=password) as jdev:
+            print(starHeading(host, 5))
+            # Raw collected information
+            # VLAN Info (show vlans)
+            vlaninfo = VlanTable(jdev)
+            vlaninfo.get(extensive=True)
+            vlan_dict = capture_vlan_info(selected_vlan, vlaninfo)
+            #print("VLAN DICT")
+            #print(vlan_dict)
+            # STP Info (show spanning-tree bridge)
+            stpbridge = STPBridgeTable(jdev)
+            stpbridge.get()
+            stp_dict = capture_span_info(selected_vlan, stpbridge)
+            #print("STP DICT")
+            #print(stp_dict)
+            # Check if vlan_dict and stp_dict are populated
+            if vlan_dict:
+                # LLDP Info (show lldp neighbors)
+                lldpneigh = LLDPNeighborTable(jdev)
+                lldpneigh.get()
+                lldp_dict = capture_lldp_info(lldpneigh, vlan_dict["members"])
+            # If no vlan or stp information exists, provide an empty dict
             else:
-                chassis_dict["root_bridge"] = False
-            chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
-            chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
-            chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
+                lldp_dict = {}
+            #print("LLDP DICT")
+            #print(lldp_dict)
+            # Phy Info (show
+
+            # Computed variables
+            chassis_dict["hostname"] = host
+            chassis_dict["ip"] = ip
+            chassis_dict["vlan"] = vlan_dict
+            chassis_dict["stp"] = stp_dict
+            chassis_dict["lldp"] = lldp_dict
+            # Check if vlan dict exists
+            if vlan_dict:
+                # Check if the mac of the RB and local mac is the same, to check if this is the RB
+                if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
+                    chassis_dict["root_bridge"] = True
+                else:
+                    chassis_dict["root_bridge"] = False
+                chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
+                chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
+                chassis_dict["non-lldp-intf"] = get_non_lldp_intf(lldp_dict, vlan_dict, stp_dict["vlan_root_port"])
+    else:
+        # Pull VLAN info from JSON file
+        vlan_json_file = os.path.join(dir_path, (host + "_vlan-ext.json"))
+        print("FILE: {}".format(vlan_json_file))
+        vlan_dict = capture_json_vlan_info(selected_vlan, json_to_dict(vlan_json_file))
+        print("VLAN DICT")
+        print(vlan_dict)
+        exit()
+        # Pull STP info from JSON file
+        stp_json_file = os.path.join(dir_path, "stp.json")
+        stp_dict = capture_json_stp_info(selected_vlan, json_to_dict(stp_json_file))
+
+        # Pull LLDP info from JSON file
+        lldp_json_file = os.path.join(dir_path, "lldp.json")
+        lldp_dict = capture_json_lldp_info(selected_vlan, json_to_dict(lldp_json_file), vlan_dict["members"])
+
+
     #print("Chassis Dict")
     #print(chassis_dict)
     return(chassis_dict)
@@ -572,8 +590,15 @@ def stp_map_files():
     # Provide selection for sending a single command or multiple commands from a file
     selected_vlan = "None"
     hosts = []
-    host = getOptionAnswer("Select a starting Host", dev_list.keys())
-    print("Host: {}".format(host))
+    hosts_list = []
+    for a_host in dev_list.keys():
+        hosts_list.append(a_host)
+    host = getOptionAnswer("Select a starting Host", hosts_list)
+    hosts.append(host)
+    for host in hosts:
+        chassis_dict = capture_chassis_info(selected_vlan, host, using_network=False)
+        print("Chassis Dict")
+        print(chassis_dict)
     exit()
 
 # Function for running operational commands to multiple devices
@@ -607,7 +632,7 @@ def stp_map_net(my_ips):
         for host in hosts:
             # Capture from host
             #print("Host: {}".format(host))
-            chassis_dict = capture_chassis_info(selected_vlan, host)
+            chassis_dict = capture_chassis_info(selected_vlan, host, using_network=True)
             # Check if this device is the root bridge
             if chassis_dict["vlan"]:
                 if chassis_dict["root_bridge"]:
@@ -690,9 +715,6 @@ def stp_map_net(my_ips):
         #create_chart()
         #create_stp_stats()
         #create_stp_paths()
-        vlan_dict = capture_json_vlan_info(selected_vlan, json_to_dict(vlan_json_file))
-        stp_dict = capture_json_stp_info(selected_vlan, json_to_dict(stp_json_file))
-        lldp_dict = capture_json_lldp_info(selected_vlan, json_to_dict(lldp_json_file), vlan_dict["members"])
         exit()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
