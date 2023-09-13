@@ -195,8 +195,6 @@ def capture_json_vlan_info(selected_vlan, raw_dict):
                         vlan_found = True
                         break
             if vlan_found:
-                print("L2")
-                print(l2)
                 intf_list = []
                 for vname in l2["l2ng-l2rtb-vlan-name"]:
                     vlan_dict["name"] = vname["data"]
