@@ -576,13 +576,13 @@ def create_stp_stats():
             # Populate Root Cost Cell
             host_content.append(host["root_cost"])
             # Populate Hops from Root
-
+            # Add row to table
             myTable.add_row(host_content)
         else:
             adj_name = host["name"] + " (NV)"
             host_content = [adj_name, "-", "-", "-"]
             myTable.add_row(host_content)
-    #print(myTable)
+    print(myTable)
 def create_chart():
     key = "upstream_peer"
     rb_key = "root_bridge"
