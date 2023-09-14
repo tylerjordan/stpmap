@@ -215,7 +215,7 @@ def capture_json_vlan_info(selected_vlan, raw_dict):
         # If the vlan has been found, break out of the top level loop
         if vlan_found:
             break
-    return(vlan_dict)
+    return vlan_dict
 
 # Collects all VLANs from the provided VLAN output
 def collect_vlan_list(raw_dict):
@@ -296,7 +296,7 @@ def capture_json_stp_info(selected_vlan, raw_dict):
                 break
         if stp_found:
             break
-    return(stp_dict)
+    return stp_dict
 
 def capture_lldp_info(lldpneigh, members):
     lldp_ld = []
@@ -342,7 +342,7 @@ def capture_lldp_info(lldpneigh, members):
     # Return LLDP
     #print("LLDP_LD")
     #print(lldp_ld)
-    return(lldp_ld)
+    return lldp_ld
 
 # This function assumes capturing "show spanning-tree bridge | display json" output
 def capture_json_lldp_info(selected_vlan, raw_dict, members):
@@ -401,7 +401,7 @@ def capture_json_lldp_info(selected_vlan, raw_dict, members):
                     member_match = True
                 if member_match:
                     break
-    return(lldp_ld)
+    return lldp_ld
 
 def get_non_lldp_intf(lldp_dict, vlan_dict, root_port):
     non_lldp_intf = []
@@ -546,7 +546,7 @@ def capture_chassis_info(selected_vlan, host, using_network):
     #print("Chassis Dict")
     #print(chassis_dict)
 
-    return(chassis_dict)
+    return chassis_dict
 
 def create_stp_paths():
     path_list = []
@@ -681,9 +681,15 @@ def stp_map_files():
     #print("ALL CHASSIS")
     #print(all_chassis)
     # Print the table
+    print("***********************")
+    print("* Spanning Tree Chart *")
+    print("***********************")
     create_chart()
+    print("***********************")
+    print("* Spanning Tree Stats *")
+    print("***********************")
     create_stp_stats()
-    create_stp_paths()
+    #create_stp_paths()
     #exit()
 
 def scan_loop(selected_vlan, hosts, using_network):
@@ -806,11 +812,22 @@ def stp_map_net(my_ips):
         scan_loop(selected_vlan, hosts, using_network=True)
 
         # Print the table
+        print("***********************")
+        print("* Spanning Tree Chart *")
+        print("***********************")
         create_chart()
+        print("***********************")
+        print("* Spanning Tree Stats *")
+        print("***********************")
         create_stp_stats()
-        create_stp_paths()
+        #create_stp_paths()
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
+
+# Function to analyze the spanning tree domains of VLANs in the network
+def root_bridge_analysis():
+    print("*" * 50 + "\n" + " " * 10 + "Root Bridge Analysis\n" + "*" * 50)
+
 
 # Main execution loop
 if __name__ == "__main__":
@@ -838,4 +855,6 @@ if __name__ == "__main__":
         elif answer == "2":
             stp_map_net(my_ips)
         elif answer == "3":
+            root_bridge_analysis()
+        elif answer == "4":
             quit()
