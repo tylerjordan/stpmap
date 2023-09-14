@@ -842,7 +842,7 @@ if __name__ == "__main__":
     password = getpass(prompt="\nEnter your password: ")
 
     # Define menu options
-    my_options = ['Scan Vlans (Files)', 'Scan Vlans (Network)', 'Quit']
+    my_options = ['Scan Vlans (Files)', 'Scan Vlans (Network)', 'Root Bridge Analysis', 'Quit']
     my_ips = []
 
     # Get menu selection
