@@ -830,6 +830,6 @@ def remove_duplicates(alist):
     for i in alist:
         if i not in nodup_list:
             nodup_list.append(i)
-        else:
-            print(i,end=' ')
+        #else:
+            #print(i,end=' ')
     return nodup_list
