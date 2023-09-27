@@ -1,0 +1,19 @@
+---
+STPBridgeTable:
+  rpc: get-stp-bridge-information
+  item: vst-bridge-parameters
+  key: vlan-id
+  view: STPBridgeView
+
+STPBridgeView:
+  fields:
+    vlan_id: vlan-id
+    root_bridge_priority: root-bridge/bridge-priority
+    root_bridge_mac: root-bridge/bridge-mac
+    root_cost: root-cost
+    root_port: root-port
+    topo_change_count: topology-change-count
+    time_since_last_tc: time-since-last-tc
+    local_bridge_priority: this-bridge/bridge-priority
+    local_bridge_mac: this-bridge/bridge-mac
+    
