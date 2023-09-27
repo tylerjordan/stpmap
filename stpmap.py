@@ -29,6 +29,7 @@
 
 
 import getopt
+import sys
 import csv
 import logging
 import time
@@ -1045,7 +1046,7 @@ def create_root_analysis(vlans_ld, mac_ld):
                 # Apply row to sort list
                 vlan_sort_list.append(row_contents)
             else:
-                print("Vlan: {} Chassis: {} doesn't exist.".format(vlan["vlan"], chassis["host"]))
+                print("Vlan: {} Chassis: {} did not have a local-mac.".format(vlan["vlan"], chassis["host"]))
         # Sort the rows for this VLAN so that 0 root costs are first
         sorted_list = sorted(vlan_sort_list, key=itemgetter(8))
 
