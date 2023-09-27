@@ -90,6 +90,7 @@ def detect_env():
     global upgrade_dir
     global images_dir
     global temp_dir
+    global json_dir
     global system_slash
     global ssh_port
     global dir_path
@@ -99,23 +100,23 @@ def detect_env():
     dir_path = os.path.dirname(os.path.abspath(__file__))
     if platform.system().lower() == "windows":
         # print "Environment Windows!"
-        iplist_dir = ".\\iplists\\"
         config_dir = ".\\configs\\"
         log_dir = ".\\logs\\"
         csv_dir = ".\\csv\\"
         upgrade_dir = ".\\upgrade\\"
         images_dir = ".\\images\\"
         temp_dir = ".\\temp\\"
+        json_dir = ".\\json\\"
         system_slash = "\\"
     else:
         # print "Environment Linux/MAC!"
-        iplist_dir = "./iplists/"
         config_dir = "./configs/"
         log_dir = "./logs/"
         csv_dir = "./csv/"
         upgrade_dir = "./upgrade/"
         images_dir = "./images/"
         temp_dir = "./temp/"
+        json_dir = "./json/"
 
     credsCSV = os.path.join(dir_path, "pass.csv")
     dev_list_file = os.path.join(dir_path, "dev_list.json")
@@ -181,18 +182,25 @@ def create_timestamped_log(prefix, extension):
     return log_dir + prefix + now.strftime("%Y%m%d-%H%M") + "." + extension
 
 
-def extract_vlan_info(selected_vlan, vlaninfo):
-    vlan_dict = {}
+def extract_vlan_info(vlaninfo, selected_vlan='all'):
+    vlan_ld = []
     # print("******* VLAN INFO ******")
+    vlan_found = False
     for name in vlaninfo:
-        if name.tag == selected_vlan:
+        vlan_dict = {}
+        if selected_vlan == 'all' or name.tag == selected_vlan:
             # print("{} | {} | {} | {}".format(name.name, name.tag, name.members, name.l3interface))
             vlan_dict["name"] = name.name
             vlan_dict["tag"] = name.tag
             vlan_dict["state"] = name.state
             vlan_dict["members"] = name.members
             vlan_dict["l3interface"] = name.l3interface
-    return vlan_dict
+            vlan_found = True
+        if selected_vlan != 'all' and vlan_found:
+            return vlan_dict
+        elif selected_vlan == 'all':
+            vlan_ld.append(vlan_dict)
+    return vlan_ld
 
 # This function assumes capturing "show vlan extensive | display json" output
 # vlan_dict {'tag': '','name': '','members': [], 'l3-interface': ''}
@@ -247,14 +255,13 @@ def collect_vlan_list_json(raw_dict):
                         break
     return vlan_list
 
-def extract_span_info(selected_vlan, stpbridge):
-    stp_dict = {}
+def extract_span_info(stpbridge, selected_vlan='all'):
+    stp_ld = []
     # print("\n******* STP BRIDGE INFO ******")
+    stp_found = False
     for vlan_id in stpbridge:
-        if vlan_id.vlan_id == selected_vlan:
-            # print("{} | {}({}) | {}({}) | {}".format(vlan_id.vlan_id, vlan_id.root_bridge_mac,
-            #                                         vlan_id.root_bridge_priority, vlan_id.local_bridge_mac,
-            #                                         vlan_id.local_bridge_priority, vlan_id.root_port))
+        stp_dict = {}
+        if selected_vlan == 'all' or vlan_id.vlan_id == selected_vlan:
             stp_dict["vlan_id"] = vlan_id.vlan_id
             stp_dict["vlan_rb_mac"] = vlan_id.root_bridge_mac
             stp_dict["vlan_rb_prio"] = vlan_id.root_bridge_priority
@@ -264,8 +271,13 @@ def extract_span_info(selected_vlan, stpbridge):
             stp_dict["vlan_root_cost"] = vlan_id.root_cost
             stp_dict["topo_change_count"] = vlan_id.topo_change_count
             stp_dict["time_since_last_tc"] = vlan_id.time_since_last_tc
+            stp_found = True
+        if selected_vlan != 'all' and stp_found:
+            return stp_dict
+        elif selected_vlan == 'all':
+            stp_ld.append(stp_dict)
 
-    return stp_dict
+    return stp_ld
 
 # This function assumes capturing "show spanning-tree bridge | display json" output
 # stp_dict {'vlan-id': '', 'vlan_rb_mac': '', 'vlan_rb_prio': '', 'vlan_local_mac': '', 'vlan_local_prio': '',
@@ -344,7 +356,7 @@ def extract_json_stp_info(raw_dict, selected_vlan='all'):
 # lldp_ld [
 # lldp_dict {'local_int': '', 'remote_chassis_id': '', 'remote_sysname': ''}
 # ]
-def extract_lldp_info(lldpneigh, members):
+def extract_lldp_info(lldpneigh, members='all'):
     lldp_ld = []
     # print("\n******* LLDP NEIGHBORS ******")
     for li in lldpneigh:
@@ -368,8 +380,24 @@ def extract_lldp_info(lldpneigh, members):
                     lldp_dict["remote_chassis_id"] = li.remote_chassis_id
                     lldp_dict["remote_sysname"] = li.remote_sysname
                     lldp_ld.append(lldp_dict)
+        elif members == "all":
+            lldp_dict = {}
+            if li.local_parent != "-":
+                # print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
+                #                         li.remote_sysname))
+                lldp_dict["local_int"] = li.local_parent
+                lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                lldp_dict["remote_sysname"] = li.remote_sysname
+                lldp_ld.append(lldp_dict)
+            else:
+                # print("{}: {}: {}".format(li.local_int, li.remote_chassis_id,
+                #                         li.remote_sysname))
+                lldp_dict["local_int"] = li.local_int
+                lldp_dict["remote_chassis_id"] = li.remote_chassis_id
+                lldp_dict["remote_sysname"] = li.remote_sysname
+                lldp_ld.append(lldp_dict)
         # If the members is a string
-        elif members:
+        else:
             lldp_dict = {}
             if li.local_parent != "-" and li.local_parent == members.split(".")[0]:
                 # print("{}: {}: {}".format(li.local_parent, li.remote_chassis_id,
@@ -532,39 +560,36 @@ def get_downstream_hosts(lldp_dict, root_port):
             downstream_list.append(i)
     return downstream_list
 
-def get_net_vlan_info(ip):
-    stdout.write("-> Connecting to " + ip + " ... \n")
-    with Device(host=ip, user=username, password=password) as jdev:
-        vlaninfo = VlanTable(jdev)
-        vlaninfo.get(extensive=True)
+def get_net_vlan_info(jdev, ip):
+    stdout.write("-> Pulling VLAN info from " + ip + " ... \n")
+    vlaninfo = VlanTable(jdev)
+    vlaninfo.get(extensive=True)
     return vlaninfo
 
 def get_file_vlan_info(host):
-    vlan_json_file = os.path.join(dir_path, (host + "_vlan-ext.json"))
+    vlan_json_file = os.path.join(json_dir, (host + "_vlan-ext.json"))
     raw_dict = json_to_dict(vlan_json_file)
     return raw_dict
 
-def get_net_stp_info(ip):
-    stdout.write("-> Connecting to " + ip + " ... \n")
-    with Device(host=ip, user=username, password=password) as jdev:
-        stpbridge = STPBridgeTable(jdev)
-        stpbridge.get()
+def get_net_stp_info(jdev, ip):
+    stdout.write("-> Pulling Spanning-Tree info from " + ip + " ... \n")
+    stpbridge = STPBridgeTable(jdev)
+    stpbridge.get()
     return stpbridge
 
 def get_file_stp_info(host):
-    stp_json_file = os.path.join(dir_path, (host + "_stp.json"))
+    stp_json_file = os.path.join(json_dir, (host + "_stp.json"))
     raw_dict = json_to_dict(stp_json_file)
     return raw_dict
 
-def get_net_lldp_info(ip):
-    stdout.write("-> Connecting to " + ip + " ... \n")
-    with Device(host=ip, user=username, password=password) as jdev:
-        lldpneigh = LLDPNeighborTable(jdev)
-        lldpneigh.get()
+def get_net_lldp_info(jdev, ip):
+    stdout.write("-> Pulling LLDP info from " + ip + " ... \n")
+    lldpneigh = LLDPNeighborTable(jdev)
+    lldpneigh.get()
     return lldpneigh
 
 def get_file_lldp_info(host):
-    lldp_json_file = os.path.join(dir_path, (host + "_lldp.json"))
+    lldp_json_file = os.path.join(json_dir, (host + "_lldp.json"))
     raw_dict = json_to_dict(lldp_json_file)
     return raw_dict
 
@@ -574,18 +599,22 @@ def capture_chassis_info(selected_vlan, host, using_network):
 
     if using_network:
         print(starHeading(host, 5))
-        # VLAN Info
-        vlan_dict = extract_vlan_info(selected_vlan, get_net_vlan_info(ip))
-        # STP Info (show spanning-tree bridge)
-        stp_dict = extract_span_info(selected_vlan, get_net_stp_info(ip))
-        # Check if vlan_dict and stp_dict are populated
-        if vlan_dict:
-            # LLDP Info (show lldp neighbors)
-            lldp_dict = extract_lldp_info(get_net_lldp_info(ip), vlan_dict["members"])
-        # If no vlan or stp information exists, provide an empty dict
-        else:
-            lldp_dict = {}
-        # Phy Info (show
+        try:
+            with Device(host=ip, user=username, password=password) as jdev:
+                # VLAN Info
+                vlan_dict = extract_vlan_info(selected_vlan, get_net_vlan_info(jdev, ip))
+                # STP Info (show spanning-tree bridge)
+                stp_dict = extract_span_info(get_net_stp_info(jdev, ip), selected_vlan)
+                # Check if vlan_dict and stp_dict are populated
+                if vlan_dict:
+                    # LLDP Info (show lldp neighbors)
+                    lldp_dict = extract_lldp_info(get_net_lldp_info(jdev, ip), vlan_dict["members"])
+                # If no vlan or stp information exists, provide an empty dict
+                else:
+                    lldp_dict = {}
+        except Exception as err:
+            print("Connection failed. ERROR: {}".format(err))
+            exit()
     # This will execute if we are using files for analysis
     else:
         # Pull VLAN info from JSON file
@@ -721,7 +750,6 @@ def create_chart():
 def stp_map_files():
     print("*" * 50 + "\n" + " " * 10 + "STP MAP using Network\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
-    selected_vlan = "4001"
     hosts = []
     hosts_list = []
     # Capture the available devices
@@ -731,7 +759,7 @@ def stp_map_files():
     host = getOptionAnswer("Select a starting Host", hosts_list)
 
     # Capture the available VLANs on the host selected
-    vlan_json_file = os.path.join(dir_path, (host + "_vlan-ext.json"))
+    vlan_json_file = os.path.join(json_dir, (host + "_vlan-ext.json"))
     raw_dict = json_to_dict(vlan_json_file)
     vlan_list = collect_vlan_list_json(raw_dict)
 
@@ -850,30 +878,26 @@ def scan_loop(selected_vlan, hosts, using_network):
 
 
 # Function for running operational commands to multiple devices
-def stp_map_net(my_ips):
+def stp_map_net():
     print("*" * 50 + "\n" + " " * 10 + "STP MAP using Network\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
     selected_vlan = "None"
     hosts = []
 
-    if not my_ips:
-        my_ips = chooseDevices(iplist_dir)
+    my_ips = chooseDevices(iplist_dir)
     if my_ips:
         # Loop over commands and devices
         backup_rb = {"name": "None", "priority": 64000}
-        try:
-            for ip in my_ips:
-                stdout.write("-> Connecting to " + ip + " ... ")
-                with Device(host=ip, user=username, password=password) as jdev:
-                    vlan_list = []
-                    vlaninfo = VlanTable(jdev)
-                    vlaninfo.get()
-                    for name in vlaninfo:
-                        vlan_list.append(name.tag)
-                    selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
-                    hosts.append(host_from_ip(dev_list, ip))
-        except KeyboardInterrupt:
-            print("Exiting Procedure...")
+        for ip in my_ips:
+            stdout.write("-> Connecting to " + ip + " ... ")
+            jdev = connect(ip)
+            vlan_list = []
+            vlaninfo = VlanTable(jdev)
+            vlaninfo.get()
+            for name in vlaninfo:
+                vlan_list.append(name.tag)
+            selected_vlan = getOptionAnswer("Choose a VLAN", vlan_list)
+            hosts.append(host_from_ip(dev_list, ip))
 
         # Captures the information into data structures
         scan_loop(selected_vlan, hosts, using_network=True)
@@ -893,16 +917,34 @@ def stp_map_net(my_ips):
 
 
 # Function to analyze the spanning tree domains of VLANs in the network
-def root_bridge_analysis():
+def root_bridge_analysis(myselect="file"):
     print("*" * 50 + "\n" + " " * 10 + "Root Bridge Analysis\n" + "*" * 50)
     mac_ld = []
     vlans_ld = []
     all_vlans = []
-    for host in dev_list.keys():
-        vlan_json_file = os.path.join(dir_path, (host + "_vlan-ext.json"))
-        v_list = collect_vlan_list_json(json_to_dict(vlan_json_file))
-        all_vlans = all_vlans + v_list
-    nodup_vlans = remove_duplicates(all_vlans)
+    # Collect all vlans via network
+    if myselect == "net":
+        raw_vlan_list = []
+        for host in dev_list:
+            print("Host: {} IP: {}".format(host, dev_list[host]))
+            exit()
+            try:
+                with Device(host=ip, user=username, password=password) as jdev:
+                    collect_vlan_list_net(get_net_vlan_info(jdev, ip))
+                    raw_vlan_list.append(raw_vlan_list)
+            except Exception as err:
+                print("Connection failed. ERROR: {}".format(err))
+                exit()
+        nodup_vlans = remove_duplicates(raw_vlan_list)
+    else:
+        # Collect all the vlans via json files
+        for host in dev_list.keys():
+            vlan_json_file = os.path.join(json_dir, (host + "_vlan-ext.json"))
+            v_list = collect_vlan_list_json(json_to_dict(vlan_json_file))
+            all_vlans = all_vlans + v_list
+        # Remove dupliate vlans
+        nodup_vlans = remove_duplicates(all_vlans)
+    # Create base of data structure to store all info
     for vlan in nodup_vlans:
         vlan_dict = {'vlan': vlan, 'chassis': []}
         vlans_ld.append(vlan_dict)
@@ -911,9 +953,12 @@ def root_bridge_analysis():
         print("Processing host {} ...".format(host))
         # Capture needed information from host
         first_pass = True
-        stp_temp_ld = extract_json_stp_info(get_file_stp_info(host))
-        vlan_temp_ld = extract_json_vlan_info(get_file_vlan_info(host))
-        lldp_dict = remove_duplicates(extract_json_lldp_info(get_file_lldp_info(host)))
+        if myselect == "net":
+            stp_temp_ld = extract_json_stp_info(get_file_stp_info(host))
+            vlan_temp_ld = extract_json_vlan_info(get_file_vlan_info(host))
+            lldp_dict = remove_duplicates(extract_json_lldp_info(get_file_lldp_info(host)))
+        else:
+            stp_temp_ld = ext
         # Loop over the vlan data captured for this host
         for vlan_dict in vlan_temp_ld:
             # Loop over the vlans in the data structure
@@ -921,12 +966,8 @@ def root_bridge_analysis():
                 # If the vlan data capture and data structure matches...
                 if vlan["vlan"] == vlan_dict["tag"]:
                     temp_dict = {"host": host, "l3-interface": vlan_dict["l3interface"]}
-                    #print(vlan_dict)
-                    #print("Dict Dest")
-                    #print(vlan)
                     # Loop over the spanning tree data collected
                     for stp_dict in stp_temp_ld:
-                        #print("STP: {}".format(stp_dict["vlan_id"]))
                         # If the vlan_id info for this host matches the stp vlan_id
                         if vlan_dict["tag"] == stp_dict["vlan_id"]:
                             temp_dict["root-bridge-mac"] = stp_dict["vlan_rb_mac"]
@@ -987,6 +1028,13 @@ def root_bridge_analysis():
     # mac = [ { 'hostname': 'SF-A', 'mac': '2c:3a:5b:aa:bb:cc'},
     #         { 'hostname': 'SF-B', 'mac': '2c:88:77:ab:bc:cd'}
     #       ]
+
+def collect_vlan_list_net(vlaninfo):
+    vlan_list = []
+    for name in vlaninfo:
+        if name.tag:
+            vlan_list.append(name.tag)
+    return vlan_list
 
 def create_root_analysis(vlans_ld, mac_ld):
     key = "upstream_peer"
@@ -1076,7 +1124,6 @@ if __name__ == "__main__":
 
     # Define menu options
     my_options = ['Scan Vlans (Files)', 'Scan Vlans (Network)', 'Root Bridge Analysis', 'Quit']
-    my_ips = []
 
     # Get menu selection
     while True:
@@ -1086,7 +1133,7 @@ if __name__ == "__main__":
         if answer == "1":
             stp_map_files()
         elif answer == "2":
-            stp_map_net(my_ips)
+            stp_map_net()
         elif answer == "3":
             root_bridge_analysis()
         elif answer == "4":
