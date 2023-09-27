@@ -1,8 +1,40 @@
+# STPMAP.PY
+# The network-based functions pull information from the actual chassis. It uses an RPC that pulls data formatted by a
+# YAML table/view:
+# The YAML table/views are located under ../python3.11/site-packages/jnpr/junos/op
+# The default YAML table/views may need to be modified so that the correct information can be pulled.
+#
+# List of table/views Needed:
+# - vlan.yml
+# - stpbridge.yml
+# - lldp.yml
+#
+# Please find the included YAML files, they will need to be added to the path indicated for the network-based functions
+# to work correctly.
+#
+# The file-based functions use the data pulled from "show" commands using the " | display json | no-more" option to correctly
+# format the output. The files will likely need to be cleaned up. The output is in the form of .json files. Ensure that
+# the files are UTF-8. Any other formats may cause problems, including UTF-8 with BOM encoding.
+#
+# List of commands used:
+# - show vlan extensive | display json | no-more
+# - show spanning-tree bridge | display json | no-more
+# - show lldp neighbors | display json | no-more
+#
+# File Format:
+# The format of the file name is important. The Chassis Hostname must be the :
+# For LLDP file: <Chassis Hostname>_lldp.json
+# For Spanning Tree file: <Chassis Hostname>_stp.json
+# For VLAN file: <Chassis Hostname>_vlan-ext.json
+
+
 import getopt
 import csv
 import logging
 import time
 import pprint
+from operator import itemgetter
+
 import netaddr
 import re
 import multiprocessing
@@ -40,35 +72,8 @@ system_slash = "/"  # This is the linux/mac slash format, windows format will be
 
 remote_path = "/var/tmp"
 
-dev_list = {
-    "SF-A": "132.32.255.206",
-    "SF-B": "132.32.255.207",
-    "CN1": "132.32.255.201",
-    "CN2": "132.32.255.202",
-    "CN3": "132.32.255.203",
-    "CN4": "132.32.255.204",
-    "CN5": "132.32.255.205",
-    "CDN-168": "132.32.255.209",
-    "CDN-167": "132.32.255.212"
-}
-
-env_dict = [
-    {"system_name": "CN3", "vlan_id": 281, "local_priority": 33049, "root_bridge": False, "root_port": "ge-0/0/5",
-     "root_sys": "CN2", "root_priority": 4377,
-     "downstream_ports": [{"port": "ge-0/0/2", "sys": "CDN-475"}, {"port": "ge-0/0/1", "sys": "CDN-465"}],
-     "edge_ports": ["ge-0/0/3", "ge-0/0/6"]
-     },
-    {"system_name": "CN2", "vlan_id": 281, "local_priority": 4377, "root_bridge": True, "root_port": None,
-     "root_sys": None, "root_priority": 4377,
-     "downstream_ports": [{"port": "ge-0/0/5", "sys": "CN3"}],
-     "edge_ports": [None]
-     },
-    {"system_name": "CDN-475", "vlan_id": 281, "local_priority": 33049, "root_bridge": False, "root_port": "ge-0/0/2",
-     "root_sys": "CN3", "root_priority": 4377,
-     "downstream_ports": [None],
-     "edge_ports": ["ge-0/0/3"]
-     }
-]
+dev_list = {}
+# Dictionary to hold chassis information
 all_chassis = {}
 
 
@@ -76,6 +81,7 @@ all_chassis = {}
 def detect_env():
     """ Purpose: Detect OS and create appropriate path variables. """
     global credsCSV
+    global dev_list_file
     global iplist_dir
     global config_dir
     global log_dir
@@ -111,6 +117,7 @@ def detect_env():
         temp_dir = "./temp/"
 
     credsCSV = os.path.join(dir_path, "pass.csv")
+    dev_list_file = os.path.join(dir_path, "dev_list.json")
 
 
 # Handles arguments provided at the command line
@@ -867,6 +874,7 @@ def stp_map_net(my_ips):
         except KeyboardInterrupt:
             print("Exiting Procedure...")
 
+        # Captures the information into data structures
         scan_loop(selected_vlan, hosts, using_network=True)
 
         # Print the table
@@ -924,12 +932,20 @@ def root_bridge_analysis():
                             temp_dict["root-bridge-priority"] = stp_dict["vlan_rb_prio"]
                             temp_dict["local-mac"] = stp_dict["vlan_local_mac"]
                             temp_dict["local-priority"] = stp_dict["vlan_local_prio"]
-                            temp_dict["root-cost"] = stp_dict["vlan_root_cost"]
-                            temp_dict["root-port"] = stp_dict["vlan_root_port"]
+                            # Make root cost 0 if None is the value
+                            if stp_dict["vlan_root_cost"] is None:
+                                temp_dict["root-cost"] = "0"
+                            else:
+                                temp_dict["root-cost"] = stp_dict["vlan_root_cost"]
+                            # Make root port "-" if its None
+                            if stp_dict["vlan_root_port"] is None:
+                                temp_dict["root-port"] = "None"
+                            else:
+                                temp_dict["root-port"] = stp_dict["vlan_root_port"]
                             temp_dict["topo-changes"] = stp_dict["topo_change_count"]
                             # Add the chassis to the LD
                             if first_pass:
-                                mac_dict = {"hostname": host, "mac": stp_dict["vlan_rb_mac"]}
+                                mac_dict = {"hostname": host, "mac": stp_dict["vlan_local_mac"]}
                                 mac_ld.append(mac_dict)
                                 first_pass = False
                             # Select the downstream peers associated with the VLAN only
@@ -942,10 +958,8 @@ def root_bridge_analysis():
                                         break
                     # Add the chassis dict to the "chassis" list
                     vlan["chassis"].append(temp_dict)
-    print("VLANS LD")
-    print(vlans_ld)
-    #create_root_analysis(vlans_ld, mac_ld)
-    exit()
+    # Print table to CLI
+    create_root_analysis(vlans_ld, mac_ld)
     #vlans = [ { 'vlan': '4001',
     #            'chassis': [
     #                { 'host': 'SF-A',
@@ -978,52 +992,70 @@ def create_root_analysis(vlans_ld, mac_ld):
     rb_key = "root_bridge"
     # Specify the Column Names while initializing the Table
     # Specify the Column Names while initializing the Table
-    myTable = PrettyTable(["VLAN", "Chassis", "Root Bridge (Cost)", "Local Priority", "Downstream Peers",
+    myTable = PrettyTable(["VLAN", "Chassis", "Root Bridge (Cost)", "Local Priority", "Root Port", "Downstream Peers",
                            "Topo Changes", "L3 Interface"])
+    breakrow = ['----', '-------', '--------------------', '-----', '------------', '--------', '--------', '-------']
     # Loop over VLAN hierarchy
     for vlan in vlans_ld:
-        first_pass = True
-        row_contents = []
+        vlan_sort_list = []
         for chassis in vlan["chassis"]:
-            print("Chassis Info")
-            print(chassis)
-            exit()
+            row_contents = []
             # Populate VLAN cell
-            if first_pass:
-                row_contents.append(vlan["vlan"])
-                first_pass = False
-            else:
-                row_contents.append("-")
+            row_contents.append(vlan["vlan"])
             # Populate Chassis cell
             row_contents.append(chassis["host"])
             # Populate Root Bridge cell
-            for mac_dict in mac_ld:
-                if mac_dict["mac"] == chassis["root-bridge-mac"]:
-                    row_contents.append(mac_dict["hostname"] + "(" + vlan["root-cost"] + ")")
-            # Populate Local Priority
-            row_contents.append(chassis["local-priority"])
-            # Populate Downstream Peers
-            peer_list = ""
-            num = len(chassis["downstream-peers"])
-            curr = 1
-            for peer in chassis["downstream-peers"]:
-                if curr == num:
-                    peer_list = peer_list + peer
+            if "local-mac" in chassis:
+                if "root-bridge-mac" in chassis:
+                    matched_mac = False
+                    for mac_dict in mac_ld:
+                        if mac_dict["mac"] == chassis["root-bridge-mac"]:
+                            row_contents.append(mac_dict["hostname"] + " (" + chassis["root-cost"] + ")")
+                            matched_mac = True
+                            break
+                    if not matched_mac:
+                        row_contents.append(chassis["root-bridge-mac"] + " (" + chassis["root-cost"] + ")")
+                # Populate Local Priority
+                row_contents.append(chassis["local-priority"])
+                # Populate Root Port Cell
+                row_contents.append(chassis['root-port'])
+                # Populate Downstream Peers
+                peer_list = ""
+                num = len(chassis["downstream-peers"])
+                curr = 1
+                for peer in chassis["downstream-peers"]:
+                    if curr == num:
+                        peer_list = peer_list + peer
+                    else:
+                        peer_list = peer_list + peer + ","
+                        curr += 1
+                if peer_list:
+                    row_contents.append(peer_list)
                 else:
-                    peer_list = peer_list + peer + ","
-                    curr += 1
-            if peer_list:
-                row_contents.append(peer_list)
+                    row_contents.append("None")
+                # Populate Topology Changes Number
+                row_contents.append(chassis["topo-changes"])
+                # Populate L3 Interfaces
+                if chassis["l3-interface"]:
+                    row_contents.append(chassis["l3-interface"])
+                else:
+                    row_contents.append("-")
+                row_contents.append(chassis["root-cost"])
+                #myTable.add_row(row_contents)
+                # Apply row to sort list
+                vlan_sort_list.append(row_contents)
             else:
-                row_contents.append("None")
-            # Populate Topology Changes Number
-            row_contents.append(vlan["topo-changes"])
-            # Populate L3 Interfaces
-            if vlan["l3-interface"]:
-                row_contents.append(vlan["l3-interface"])
-            else:
-                row_contents.append("-")
-    myTable.add_row(row_contents)
+                print("Vlan: {} Chassis: {} doesn't exist.".format(vlan["vlan"], chassis["host"]))
+        # Sort the rows for this VLAN so that 0 root costs are first
+        sorted_list = sorted(vlan_sort_list, key=itemgetter(8))
+
+        # Put all the sorted rows in the table and remove the last element used for sorting
+        for row in sorted_list:
+            ele = row.pop()
+            myTable.add_row(row)
+        # Add this row to breakup the VLANs
+        myTable.add_row(breakrow)
+    # Print the table
     print(myTable)
 
 
@@ -1032,6 +1064,7 @@ if __name__ == "__main__":
 
     # Detect the platform type
     detect_env()
+    dev_list = json_to_dict(dev_list_file)
 
     # Get a username and password from the user
     username = getargs(sys.argv[1:])

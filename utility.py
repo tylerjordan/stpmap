@@ -3,7 +3,7 @@
 # Modified: 2/23/2018
 # Purpose: Assist CBP engineers with Juniper configuration tasks
 
-import sys, re, os, csv
+import re, os, csv
 import fileinput
 import glob
 import math
@@ -12,15 +12,10 @@ import subprocess
 import datetime
 import platform
 import json
-import operator
-import time
-import pprint
 
-from os import listdir
-from os.path import isfile, join, exists
+from os.path import exists
 from jnpr.junos import Device
 from jnpr.junos.utils.config import Config
-from jnpr.junos.exception import ConnectError
 from jnpr.junos.exception import LockError
 from jnpr.junos.exception import UnlockError
 from jnpr.junos.exception import ConfigLoadError
@@ -380,23 +375,28 @@ def csvListDict(fileName, keys=''):
 
 # Converts JSON file to Dictionary
 def json_to_dict(fileName):
-    file = open(fileName, 'r')
-    json_data = json.load(file)
-    #print(type(json_data))
-    #for key, value in json_data.items():
-    #    print(f"\nKey: {key}")
-    #    print(f"Value: {value}\n")
-    #pp = pprint.PrettyPrinter(depth=8)
-    #print("PPRINT")
-    #pp.pprint(json_data)
-    file.close()
+    try:
+        file = open(fileName, 'r')
+    except FileNotFoundError as err:
+        print("Unable to find the file: {}".format(fileName))
+        print("ERROR: {}".format(err))
+        exit()
+    except Exception as err:
+        print("Undefined error")
+        print("ERROR: {}".format(err))
+        exit()
+    else:
+        json_data = json.load(file)
+        file.close()
     return json_data
 
 # Converts CSV file to Dictionary
 def csv_to_dict(filePathName):
     input_file = csv.DictReader(open(filePathName))
+    new_dict = {}
     for row in input_file:
-        pass
+        print("Row")
+        print(row)
     return row
 
 # Gets a target code
