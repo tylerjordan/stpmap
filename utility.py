@@ -833,3 +833,11 @@ def remove_duplicates(alist):
         #else:
             #print(i,end=' ')
     return nodup_list
+
+# Remove strings
+def remove_substrings(cur_string, replace_strs):
+    for key, value in replace_strs.items():
+        cur_string = cur_string.replace(key, value)
+
+    return(cur_string)
+

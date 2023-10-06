@@ -437,14 +437,15 @@ def extract_json_lldp_info(raw_dict, members='all'):
             local_int = ""
             remote_chassis_id = ""
             remote_sysname = ""
+            if "lldp-remote-system-name" in l2.keys():
+                for sysname in l2["lldp-remote-system-name"]:
+                    remote_sysname = sysname["data"]
             for p_int in l2["lldp-local-parent-interface-name"]:
                 parent_int = p_int["data"]
             for l_int in l2["lldp-local-port-id"]:
                 local_int = l_int["data"]
             for rem_c_id in l2["lldp-remote-chassis-id"]:
                 remote_chassis_id = rem_c_id["data"]
-            for rem_sys_id in l2["lldp-remote-system-name"]:
-                remote_sysname = rem_sys_id["data"]
             member_match = False
             # Loop over the members
             if type(members) == list:
@@ -600,55 +601,59 @@ def get_file_lldp_info(host):
     return raw_dict
 
 def capture_chassis_info(selected_vlan, host, using_network):
-    ip = dev_list[host]
-    chassis_dict = {"hostname": host, "ip": ip}
+    if host in dev_list.keys():
+        ip = dev_list[host]
+        chassis_dict = {"hostname": host, "ip": ip}
+        # For using network
+        if using_network:
+            print(starHeading(host, 5))
+            try:
+                with Device(host=ip, user=username, password=password) as jdev:
+                    # VLAN Info
+                    vlan_dict = extract_vlan_info(get_net_vlan_info(jdev, ip), selected_vlan)
+                    # STP Info (show spanning-tree bridge)
+                    stp_dict = extract_span_info(get_net_stp_info(jdev, ip), selected_vlan)
+                    # Check if vlan_dict and stp_dict are populated
+                    if vlan_dict:
+                        # LLDP Info (show lldp neighbors)
+                        lldp_dict = extract_lldp_info(get_net_lldp_info(jdev, ip), vlan_dict["members"])
+                    # If no vlan or stp information exists, provide an empty dict
+                    else:
+                        lldp_dict = {}
+            except Exception as err:
+                print("Connection failed. ERROR: {}".format(err))
+                exit()
+        # This will execute if we are using files for analysis
+        else:
+            # Pull VLAN info from JSON file
+            vlan_dict = extract_json_vlan_info(get_file_vlan_info(host), selected_vlan)
+            # Pull STP info from JSON file
+            stp_dict = extract_json_stp_info(get_file_stp_info(host), selected_vlan)
+            # Pull LLDP info from JSON file
+            if vlan_dict:
+                lldp_dict = extract_json_lldp_info(get_file_lldp_info(host), vlan_dict["members"])
+            else:
+                lldp_dict = {}
 
-    if using_network:
-        print(starHeading(host, 5))
-        try:
-            with Device(host=ip, user=username, password=password) as jdev:
-                # VLAN Info
-                vlan_dict = extract_vlan_info(get_net_vlan_info(jdev, ip), selected_vlan)
-                # STP Info (show spanning-tree bridge)
-                stp_dict = extract_span_info(get_net_stp_info(jdev, ip), selected_vlan)
-                # Check if vlan_dict and stp_dict are populated
-                if vlan_dict:
-                    # LLDP Info (show lldp neighbors)
-                    lldp_dict = extract_lldp_info(get_net_lldp_info(jdev, ip), vlan_dict["members"])
-                # If no vlan or stp information exists, provide an empty dict
-                else:
-                    lldp_dict = {}
-        except Exception as err:
-            print("Connection failed. ERROR: {}".format(err))
-            exit()
-    # This will execute if we are using files for analysis
-    else:
-        # Pull VLAN info from JSON file
-        vlan_dict = extract_json_vlan_info(get_file_vlan_info(host), selected_vlan)
-        # Pull STP info from JSON file
-        stp_dict = extract_json_stp_info(get_file_stp_info(host), selected_vlan)
-        # Pull LLDP info from JSON file
+        # Computed variables
+        chassis_dict["vlan"] = vlan_dict
+        chassis_dict["stp"] = stp_dict
+        chassis_dict["lldp"] = lldp_dict
+        # Check if vlan dict exists
         if vlan_dict:
-            lldp_dict = extract_json_lldp_info(get_file_lldp_info(host), vlan_dict["members"])
-        else:
-            lldp_dict = {}
-
-    # Computed variables
-    chassis_dict["vlan"] = vlan_dict
-    chassis_dict["stp"] = stp_dict
-    chassis_dict["lldp"] = lldp_dict
-    # Check if vlan dict exists
-    if vlan_dict:
-        # Check if the mac of the RB and local mac is the same, to check if this is the RB
-        if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
-            chassis_dict["root_bridge"] = True
-        else:
-            chassis_dict["root_bridge"] = False
-        chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
-        chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
-        chassis_dict["non-lldp-intf"] = extract_non_lldp_intf(lldp_dict, vlan_dict)
-    # print("Chassis Dict")
-    # print(chassis_dict)
+            # Check if the mac of the RB and local mac is the same, to check if this is the RB
+            if stp_dict["vlan_rb_mac"] == stp_dict["vlan_local_mac"]:
+                chassis_dict["root_bridge"] = True
+            else:
+                chassis_dict["root_bridge"] = False
+            chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
+            chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
+            chassis_dict["non-lldp-intf"] = extract_non_lldp_intf(lldp_dict, vlan_dict)
+        # print("Chassis Dict")
+        # print(chassis_dict)
+    # Go here if the host is not in the device list (ie. Cisco)
+    else:
+        chassis_dict = {"hostname": host}
 
     return chassis_dict
 
@@ -1066,6 +1071,8 @@ def collect_vlan_list_net(vlan_ld):
 def create_root_analysis(vlans_ld, mac_ld):
     key = "upstream_peer"
     rb_key = "root_bridge"
+    # Replacement strings to remove ot pare down system names
+    replace_strs = {'FXBM-': '', '.ellsworth.af.mil': ''}
     # Specify the Column Names while initializing the Table
     # Specify the Column Names while initializing the Table
     myTable = PrettyTable(["VLAN", "Chassis", "Root Bridge (Cost)", "Local Priority", "Root Port", "Downstream Peers",
@@ -1079,14 +1086,14 @@ def create_root_analysis(vlans_ld, mac_ld):
             # Populate VLAN cell
             row_contents.append(vlan["vlan"])
             # Populate Chassis cell
-            row_contents.append(chassis["host"])
+            row_contents.append(remove_substrings(chassis["host"], replace_strs))
             # Populate Root Bridge cell
             if "local-mac" in chassis:
                 if "root-bridge-mac" in chassis:
                     matched_mac = False
                     for mac_dict in mac_ld:
                         if mac_dict["mac"] == chassis["root-bridge-mac"]:
-                            row_contents.append(mac_dict["hostname"] + " (" + chassis["root-cost"] + ")")
+                            row_contents.append(remove_substrings(mac_dict["hostname"], replace_strs) + " (" + chassis["root-cost"] + ")")
                             matched_mac = True
                             break
                     if not matched_mac:
@@ -1097,16 +1104,18 @@ def create_root_analysis(vlans_ld, mac_ld):
                 row_contents.append(chassis['root-port'])
                 # Populate Downstream Peers
                 peer_list = ""
-                num = len(chassis["downstream-peers"])
-                curr = 1
+                #num = len(chassis["downstream-peers"])
+                nondef = 0
                 for peer in chassis["downstream-peers"]:
-                    if curr == num:
-                        peer_list = peer_list + peer
+                    if peer in dev_list.keys():
+                        peer_list = peer_list + peer + " "
                     else:
-                        peer_list = peer_list + peer + ","
-                        curr += 1
+                        nondef += 1
+                # Determine how to display this...
                 if peer_list:
-                    row_contents.append(peer_list)
+                    row_contents.append(remove_substrings(peer_list, replace_strs) + "(" + str(nondef) + ")")
+                elif nondef > 0:
+                    row_contents.append("(" + str(nondef) + ")")
                 else:
                     row_contents.append("None")
                 # Populate Topology Changes Number

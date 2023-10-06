@@ -1,11 +1,14 @@
 {
-    "SF-A": "132.32.255.206",
-    "SF-B": "132.32.255.207",
-    "CN1": "132.32.255.201",
-	"CN2": "132.32.255.202",
-    "CN3": "132.32.255.203",
-    "CN4": "132.32.255.204",
-    "CN5": "132.32.255.205",
-    "CDN-168": "132.32.255.209",
-    "CDN-167": "132.32.255.212"
+    "FXBM-CN-1007-39-25.ellsworth.af.mil": "132.9.2.251",
+    "FXBM-CDN-1007-39-25.ellsworth.af.mil": "132.9.2.248",
+    "FXBM-CN-7510-1-14.16.ellsworth.af.mil": "132.9.2.254",
+    "FXBM-CDN-7510-1-14.16-SFA.ellsworth.af.mil": "132.9.2.237",
+    "FXBM-CDN-7510-1-14.16-SFB.ellsworth.af.mil": "132.9.2.236",
+    "FXBM-CDN-7510-Server-102-SFB.ellsworth.af.mil": "132.9.2.238",
+    "FXBM-CDN-7510-Server-102-SFA.ellsworth.af.mil": "132.9.2.239",
+    "FXBM-CN-7918-2FLR-1.ellsworth.af.mil": "132.9.2.253",
+    "FXBM-CDN-7918-126.ellsworth.af.mil": "132.9.2.235",
+    "FXBM-CN-4307-17-5.ellsworth.af.mil": "132.9.2.252",
+    "FXBM-CDN-4307-17-5-SFA.ellsworth.af.mil": "132.9.2.245",
+    "FXBM-CDN-4307-17-5-SFB.ellsworth.af.mil": "132.9.2.244"
 }
