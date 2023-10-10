@@ -1017,6 +1017,7 @@ def root_bridge_analysis(myselect="file"):
                             else:
                                 temp_dict["root-port"] = stp_dict["vlan_root_port"]
                             temp_dict["topo-changes"] = stp_dict["topo_change_count"]
+                            temp_dict["time-since-last-tc"] = stp_dict["time_since_last_tc"]
                             # Add the chassis to the LD
                             if first_pass:
                                 mac_dict = {"hostname": host, "mac": stp_dict["vlan_local_mac"]}
@@ -1044,7 +1045,8 @@ def root_bridge_analysis(myselect="file"):
     #                'root-cost': '0',
     #                'root-port': 'ge-0/0/0'
     #                'downstream-peers': [ 'CN1', 'SF-B' ],
-    #                'topo_changes': '4',
+    #                'topo-changes': '4',
+    #                'time-since-last-tc': '2"
     #                'l3-interface': 'irb.4001'
     #                  },
     #                { 'host': 'SF-B'}
@@ -1119,7 +1121,12 @@ def create_root_analysis(vlans_ld, mac_ld):
                 else:
                     row_contents.append("None")
                 # Populate Topology Changes Number
-                row_contents.append(chassis["topo-changes"])
+                if int(chassis["topo-changes"]) and int(chassis["time-since-last-tc"]) < 432000:
+                    # 432000 is 5 days in seconds
+                    change_time = "{} TC({})".format(chassis["topo-changes"], seconds_to_dhm(int(chassis["time-since-last-tc"])))
+                    row_contents.append(change_time)
+                else:
+                    row_contents.append(chassis["topo-changes"])
                 # Populate L3 Interfaces
                 if chassis["l3-interface"]:
                     row_contents.append(chassis["l3-interface"])

@@ -841,3 +841,20 @@ def remove_substrings(cur_string, replace_strs):
 
     return(cur_string)
 
+def seconds_to_dhm(time):
+    seconds_to_minute = 60
+    seconds_to_hour = 60 * seconds_to_minute
+    seconds_to_day = 24 * seconds_to_hour
+
+    days = time // seconds_to_day
+    time %= seconds_to_day
+
+    hours = time // seconds_to_hour
+    time %= seconds_to_hour
+
+    minutes = time // seconds_to_minute
+    time %= seconds_to_minute
+
+    dhm = "%d|%d|%d" % (days, hours, minutes)
+
+    return dhm
