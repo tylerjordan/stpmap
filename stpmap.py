@@ -835,7 +835,7 @@ def scan_loop(selected_vlan, hosts, using_network):
 
                 if chassis_dict["downstream_peers"]:
                     for peer in chassis_dict["downstream_peers"]:
-                        if peer in dev_list.keys():
+                        if peer in dev_list:
                             hosts.append(peer["name"])
                             print("-> Added {} to scan list".format(peer["name"]))
 
@@ -865,7 +865,7 @@ def scan_loop(selected_vlan, hosts, using_network):
                     # Add downstream interfaces
                     if chassis_dict["downstream_peers"]:
                         for peer in chassis_dict["downstream_peers"]:
-                            if peer in dev_list.keys():
+                            if peer in dev_list:
                                 hosts.append(peer["name"])
                             # print("-> Added {} to scan list".format(peer["name"]))
                     # Add this chassis to the list
@@ -877,7 +877,7 @@ def scan_loop(selected_vlan, hosts, using_network):
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                              chassis_dict["vlan"]["tag"]))
                     # Append the upstream device name for the next device to check
-                    if chassis_dict["upstream_peer"]["name"] in dev_list.keys():
+                    if chassis_dict["upstream_peer"]["name"] in dev_list:
                         hosts.append(chassis_dict["upstream_peer"]["name"])
             # Add the backup root bridge name to the large dict
             all_chassis["backup_root_bridge"] = backup_rb["name"]
