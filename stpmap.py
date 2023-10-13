@@ -775,7 +775,7 @@ def stp_map_files():
     # Select a VLAN from the host list
     selected_vlan = getOptionAnswer("Select a VLAN to analyze", vlan_list)
 
-    # Add selected host the list
+    # Add selected host to the list
     hosts.append(host)
 
     scan_loop(selected_vlan, hosts, using_network=False)
@@ -835,8 +835,9 @@ def scan_loop(selected_vlan, hosts, using_network):
 
                 if chassis_dict["downstream_peers"]:
                     for peer in chassis_dict["downstream_peers"]:
-                        hosts.append(peer["name"])
-                        print("-> Added {} to scan list".format(peer["name"]))
+                        if peer in dev_list.keys():
+                            hosts.append(peer["name"])
+                            print("-> Added {} to scan list".format(peer["name"]))
 
                 # Add this chassis to the list
                 all_chassis["chassis"].append(my_dict)
@@ -864,7 +865,8 @@ def scan_loop(selected_vlan, hosts, using_network):
                     # Add downstream interfaces
                     if chassis_dict["downstream_peers"]:
                         for peer in chassis_dict["downstream_peers"]:
-                            hosts.append(peer["name"])
+                            if peer in dev_list.keys():
+                                hosts.append(peer["name"])
                             # print("-> Added {} to scan list".format(peer["name"]))
                     # Add this chassis to the list
                     all_chassis["chassis"].append(my_dict)
@@ -875,7 +877,8 @@ def scan_loop(selected_vlan, hosts, using_network):
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                              chassis_dict["vlan"]["tag"]))
                     # Append the upstream device name for the next device to check
-                    hosts.append(chassis_dict["upstream_peer"]["name"])
+                    if chassis_dict["upstream_peer"]["name"] in dev_list.keys():
+                        hosts.append(chassis_dict["upstream_peer"]["name"])
             # Add the backup root bridge name to the large dict
             all_chassis["backup_root_bridge"] = backup_rb["name"]
         # This chassis doesn't have the chosen VLAN

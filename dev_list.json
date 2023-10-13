@@ -1,14 +1,20 @@
 {
     "FXBM-CN-1007-39-25.ellsworth.af.mil": "132.9.2.251",
     "FXBM-CDN-1007-39-25.ellsworth.af.mil": "132.9.2.248",
+    "FXBM-CDN-1008-113-1.ellsworth.af.mil": "132.9.2.247",
     "FXBM-CN-7510-1-14.16.ellsworth.af.mil": "132.9.2.254",
     "FXBM-CDN-7510-1-14.16-SFA.ellsworth.af.mil": "132.9.2.237",
     "FXBM-CDN-7510-1-14.16-SFB.ellsworth.af.mil": "132.9.2.236",
     "FXBM-CDN-7510-Server-102-SFB.ellsworth.af.mil": "132.9.2.238",
     "FXBM-CDN-7510-Server-102-SFA.ellsworth.af.mil": "132.9.2.239",
+    "FXBM-CDN-7501-162-1.ellsworth.af.mil": "132.9.2.241",
+    "FXBM-CDN-7502-184-1.ellsworth.af.mil": "132.9.2.240",
+    "FXBM-CDN-7104-5FLR-1.ellsworth.af.mil": "132.9.2.242",
     "FXBM-CN-7918-2FLR-1.ellsworth.af.mil": "132.9.2.253",
     "FXBM-CDN-7918-126.ellsworth.af.mil": "132.9.2.235",
     "FXBM-CN-4307-17-5.ellsworth.af.mil": "132.9.2.252",
     "FXBM-CDN-4307-17-5-SFA.ellsworth.af.mil": "132.9.2.245",
-    "FXBM-CDN-4307-17-5-SFB.ellsworth.af.mil": "132.9.2.244"
+    "FXBM-CDN-4307-17-5-SFB.ellsworth.af.mil": "132.9.2.244",
+    "FXBM-CDN-4400-313-1.ellsworth.af.mil": "132.9.2.243",
+    "FXBM-CDN-4040-169-2.ellsworth.af.mil": "132.9.2.246"
 }
