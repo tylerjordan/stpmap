@@ -12,9 +12,9 @@
 # Please find the included YAML files, they will need to be added to the path indicated for the network-based functions
 # to work correctly.
 #
-# The file-based functions use the data pulled from "show" commands using the " | display json | no-more" option to correctly
-# format the output. The files will likely need to be cleaned up. The output is in the form of .json files. Ensure that
-# the files are UTF-8. Any other formats may cause problems, including UTF-8 with BOM encoding.
+# The file-based functions use the data pulled from "show" commands using the " | display json | no-more" option to
+# correctly format the output. The files will likely need to be cleaned up. The output is in the form of .json files.
+# Ensure that the files are UTF-8. Any other formats may cause problems, including UTF-8 with BOM encoding.
 #
 # List of commands used:
 # - show vlan extensive | display json | no-more
@@ -96,6 +96,9 @@ def detect_env():
     global dir_path
     global username
     global password
+    global table_file
+    global stp_chart
+    global stp_stats
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
     if platform.system().lower() == "windows":
@@ -108,6 +111,7 @@ def detect_env():
         temp_dir = ".\\temp\\"
         json_dir = ".\\json\\"
         system_slash = "\\"
+
     else:
         # print "Environment Linux/MAC!"
         config_dir = "./configs/"
@@ -120,7 +124,9 @@ def detect_env():
 
     credsCSV = os.path.join(dir_path, "pass.csv")
     dev_list_file = os.path.join(dir_path, "dev_list.json")
-
+    table_file = os.path.join(dir_path, "table_file.txt")
+    stp_chart = os.path.join(dir_path, "stp_chart.txt")
+    stp_stats = os.path.join(dir_path, "stp_stats.txt")
 
 # Handles arguments provided at the command line
 def getargs(argv):
@@ -574,7 +580,7 @@ def get_net_vlan_info(jdev, ip):
     return vlaninfo
 
 def get_file_vlan_info(host):
-    vlan_json_file = os.path.join(json_dir, (host + "_vlan-ext.json"))
+    vlan_json_file = os.path.join(selected_repo, (host + "_vlan-ext.json"))
     raw_dict = json_to_dict(vlan_json_file)
     return raw_dict
 
@@ -585,7 +591,7 @@ def get_net_stp_info(jdev, ip):
     return stpbridge
 
 def get_file_stp_info(host):
-    stp_json_file = os.path.join(json_dir, (host + "_stp.json"))
+    stp_json_file = os.path.join(selected_repo, (host + "_stp.json"))
     raw_dict = json_to_dict(stp_json_file)
     return raw_dict
 
@@ -596,7 +602,7 @@ def get_net_lldp_info(jdev, ip):
     return lldpneigh
 
 def get_file_lldp_info(host):
-    lldp_json_file = os.path.join(json_dir, (host + "_lldp.json"))
+    lldp_json_file = os.path.join(selected_repo, (host + "_lldp.json"))
     raw_dict = json_to_dict(lldp_json_file)
     return raw_dict
 
@@ -684,7 +690,12 @@ def create_stp_stats():
             adj_name = host["name"] + " (NV)"
             host_content = [adj_name, "-", "-", "-"]
             myTable.add_row(host_content)
+    # Print this to the screen
     print(myTable)
+
+    # Write it to a table
+    with open(stp_stats, 'w') as w:
+        w.write(str(myTable))
 
 def create_chart():
     key = "upstream_peer"
@@ -754,7 +765,12 @@ def create_chart():
             adj_name = host["name"] + " (NV)"
             host_content = [adj_name, "-", "-", "-", "-", "-", "-", "-"]
             myTable.add_row(host_content)
+    # Print it to the screen
     print(myTable)
+
+    # Write it to a table
+    with open(stp_chart, 'w') as w:
+        w.write(str(myTable))
 
 def stp_map_files():
     print("*" * 50 + "\n" + " " * 10 + "STP MAP using Network\n" + "*" * 50)
@@ -768,7 +784,7 @@ def stp_map_files():
     host = getOptionAnswer("Select a starting Host", hosts_list)
 
     # Capture the available VLANs on the host selected
-    vlan_json_file = os.path.join(json_dir, (host + "_vlan-ext.json"))
+    vlan_json_file = os.path.join(selected_repo, (host + "_vlan-ext.json"))
     raw_dict = json_to_dict(vlan_json_file)
     vlan_list = collect_vlan_list_json(raw_dict)
 
@@ -951,9 +967,9 @@ def root_bridge_analysis(myselect="file"):
             vlan_only.append(one_vlan["tag"])
         nodup_vlans = remove_duplicates(vlan_only)
     else:
-        # Collect all the vlans via json files
+        # Collect all the vlans via json files, using repo location
         for host in dev_list.keys():
-            vlan_json_file = os.path.join(json_dir, (host + "_vlan-ext.json"))
+            vlan_json_file = os.path.join(selected_repo, (host + "_vlan-ext.json"))
             v_list = collect_vlan_list_json(json_to_dict(vlan_json_file))
             all_vlans = all_vlans + v_list
         # Remove dupliate vlans
@@ -1081,7 +1097,7 @@ def create_root_analysis(vlans_ld, mac_ld):
     # Specify the Column Names while initializing the Table
     # Specify the Column Names while initializing the Table
     myTable = PrettyTable(["VLAN", "Chassis", "Root Bridge (Cost)", "Local Priority", "Root Port", "Downstream Peers",
-                           "Topo Changes", "L3 Interface"])
+                           "Topo Changes (D|H|M)", "L3 Interface"])
     breakrow = ['----', '-------', '--------------------', '-----', '------------', '--------', '--------', '-------']
     # Loop over VLAN hierarchy
     for vlan in vlans_ld:
@@ -1153,20 +1169,29 @@ def create_root_analysis(vlans_ld, mac_ld):
     # Print the table
     print(myTable)
 
+    # Write it to a table
+    with open(table_file, 'w') as w:
+        w.write(str(myTable))
+
+# Used to choose the repository for selecting
+def select_repository():
+    global selected_repo
+    dirs = [d for d in os.listdir(json_dir) if os.path.isdir(os.path.join(json_dir, d))]
+    answer = getOptionAnswer('Choose a source repository', dirs)
+    selected_repo = os.path.join(dir_path, 'json', (answer + "/"))
+    print("Path: {}".format(selected_repo))
 
 # Main execution loop
 if __name__ == "__main__":
 
     # Detect the platform type
     detect_env()
-    dev_list = json_to_dict(dev_list_file)
 
     # Get a username and password from the user
     username = getargs(sys.argv[1:])
     if not username:
         print('Please supply a username as an argument: jshow.py -u <username>')
         exit()
-    password = getpass(prompt="\nEnter your password: ")
 
     # Define menu options
     my_options = ['Scan Vlans (Files)', 'Scan Vlans (Network)', 'Root Bridge Analysis (File)',
@@ -1178,12 +1203,18 @@ if __name__ == "__main__":
         print("*" * 50 + "\n" + " " * 10 + "JSHOW: MAIN MENU\n" + "*" * 50)
         answer = getOptionAnswerIndex('Make a Selection', my_options)
         if answer == "1":
+            select_repository()
+            dev_list = json_to_dict(os.path.join(selected_repo, 'dev_list.json'))
             stp_map_files()
         elif answer == "2":
+            password = getpass(prompt="\nEnter your password: ")
             stp_map_net()
         elif answer == "3":
+            select_repository()
+            dev_list = json_to_dict(os.path.join(selected_repo, 'dev_list.json'))
             root_bridge_analysis()
         elif answer == "4":
+            password = getpass(prompt="\nEnter your password: ")
             root_bridge_analysis('net')
         elif answer == "5":
             quit()
