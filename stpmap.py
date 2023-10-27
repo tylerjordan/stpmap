@@ -291,6 +291,59 @@ def extract_span_info(stpbridge, selected_vlan='all'):
 
     return stp_ld
 
+def extract_json_stp_int(raw_dict, selected_vlan='all'):
+    stp_int_ld = []
+    match_vlan = False
+    if selected_vlan == 'all':
+        one_vlan = False
+    else:
+        one_vlan = True
+    for l1 in raw_dict["stp-interface-information"]:
+        for l2 in l1["stp-instance"]:
+            stp_int_dict = {}
+            if "vlan-id" in l2.keys():
+                for vlan_id in l2["vlan-id"]:
+                    if one_vlan:
+                        if vlan_id["data"] == selected_vlan:
+                            stp_int_dict["vlan_id"] = vlan_id["data"]
+                            match_vlan = True
+                    else:
+                        stp_int_dict["vlan_id"] = vlan_id["data"]
+                        match_vlan = True
+                    if match_vlan:
+                        for stp_ints in l2["stp-interfaces"]:
+                            stp_int_dict["interfaces"] = []
+                            for stp_int in stp_ints["stp-interface-entry"]:
+                                # Create a separate dict for each interface
+                                stp_intf_dict = {}
+                                for int_name in stp_int["interface-name"]:
+                                    stp_intf_dict["int_name"] = int_name["data"]
+                                    print("Interface Name: {}".format(stp_int_dict["int_name"]))
+                                    break
+                                for port_cost in stp_int["port-cost"]:
+                                    stp_intf_dict["port_cost"] = port_cost["data"]
+                                    break
+                                for port_state in stp_int["port-state"]:
+                                    stp_intf_dict["port_state"] = port_state["data"]
+                                    break
+                                for desg_bridge_mac in stp_int["designated-bridge-mac"]:
+                                    stp_intf_dict["desg_bridge_mac"] = desg_bridge_mac["data"]
+                                    break
+                                for desg_bridge_prio in stp_int["designated-bridge-priority"]:
+                                    stp_intf_dict["desg_bridge_prio"] = desg_bridge_prio["data"]
+                                    break
+                                for port_role in stp_int["port-role"]:
+                                    stp_intf_dict["port_role"] = port_role["data"]
+                                    break
+                                # Add interface to vlan interface list
+                                stp_int.dict["interfaces"].append(stp_intf_dict)
+                            break
+                        break
+
+
+            else:
+                print("Skipping RSTP instance...")
+
 # This function assumes capturing "show spanning-tree bridge | display json" output
 # stp_dict {'vlan-id': '', 'vlan_rb_mac': '', 'vlan_rb_prio': '', 'vlan_local_mac': '', 'vlan_local_prio': '',
 #           'topology_change_count': '', 'time_since_last_tc': '', 'vlan_root_port': '', 'vlan_root_cost': ''}
@@ -595,6 +648,11 @@ def get_file_stp_info(host):
     raw_dict = json_to_dict(stp_json_file)
     return raw_dict
 
+def get_file_stp_int(host):
+    stp_int_json_file = os.path.join(selected_repo, (host + "_stp-int.json"))
+    raw_dict = json_to_dict(stp_int_json_file)
+    return raw_dict
+
 def get_net_lldp_info(jdev, ip):
     stdout.write("-> Pulling LLDP info from " + ip + " ... \n")
     lldpneigh = LLDPNeighborTable(jdev)
@@ -632,13 +690,14 @@ def capture_chassis_info(selected_vlan, host, using_network):
         # This will execute if we are using files for analysis
         else:
             # Pull VLAN info from JSON file
-            print("Host: {}".format(host))
-            print("Selected Vlan: {}".format(selected_vlan))
             vlan_dict = extract_json_vlan_info(get_file_vlan_info(host), selected_vlan)
-            print("VLAN DICT")
-            print(vlan_dict)
             # Pull STP info from JSON file
             stp_dict = extract_json_stp_info(get_file_stp_info(host), selected_vlan)
+            # Pull STP Interface infro from JSON file
+            stp_int_dict = extract_json_stp_int(get_file_stp_int(host), selected_vlan)
+            print("STP INT DICT")
+            print(stp_int_dict)
+
             # Pull LLDP info from JSON file
             if vlan_dict:
                 lldp_dict = extract_json_lldp_info(get_file_lldp_info(host), vlan_dict["members"])
@@ -989,10 +1048,12 @@ def root_bridge_analysis(myselect="file"):
         # Capture needed information from host
         first_pass = True
         stp_temp_ld = []
+        stp_int_temp_ld = []
         vlan_temp_ld = []
         lldp_dict = {}
         if myselect == "file":
             stp_temp_ld = extract_json_stp_info(get_file_stp_info(host))
+            stp_int_temp_ld = extract_json_stp_int(get_file_stp_int(host))
             vlan_temp_ld = extract_json_vlan_info(get_file_vlan_info(host))
             lldp_dict = remove_duplicates(extract_json_lldp_info(get_file_lldp_info(host)))
         else:
