@@ -226,7 +226,7 @@ def extract_json_vlan_info(raw_dict, selected_vlan='all'):
                 for vtag in l2["l2ng-l2rtb-vlan-tag"]:
                     if selected_vlan == vtag["data"]:
                         vlan_dict["tag"] = vtag["data"]
-                       #print("Found vlan {}".format(vtag["data"]))
+                        print("Found vlan {}".format(vtag["data"]))
                         vlan_found = True
                     elif selected_vlan == 'all':
                         vlan_dict["tag"] = vtag["data"]
@@ -250,7 +250,7 @@ def extract_json_vlan_info(raw_dict, selected_vlan='all'):
                         vlan_dict["l3interface"] = ""
                 if selected_vlan != 'all' and vlan_found:
                     return vlan_dict
-                else:
+                elif vlan_dict:
                     vlan_ld.append(vlan_dict)
                     vlan_found = False
     return vlan_ld
@@ -632,7 +632,11 @@ def capture_chassis_info(selected_vlan, host, using_network):
         # This will execute if we are using files for analysis
         else:
             # Pull VLAN info from JSON file
+            print("Host: {}".format(host))
+            print("Selected Vlan: {}".format(selected_vlan))
             vlan_dict = extract_json_vlan_info(get_file_vlan_info(host), selected_vlan)
+            print("VLAN DICT")
+            print(vlan_dict)
             # Pull STP info from JSON file
             stp_dict = extract_json_stp_info(get_file_stp_info(host), selected_vlan)
             # Pull LLDP info from JSON file
