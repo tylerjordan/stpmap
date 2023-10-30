@@ -226,7 +226,7 @@ def extract_json_vlan_info(raw_dict, selected_vlan='all'):
                 for vtag in l2["l2ng-l2rtb-vlan-tag"]:
                     if selected_vlan == vtag["data"]:
                         vlan_dict["tag"] = vtag["data"]
-                        print("Found vlan {}".format(vtag["data"]))
+                        #print("Found vlan {}".format(vtag["data"]))
                         vlan_found = True
                     elif selected_vlan == 'all':
                         vlan_dict["tag"] = vtag["data"]
@@ -299,26 +299,32 @@ def extract_json_stp_int(raw_dict, selected_vlan='all'):
     else:
         one_vlan = True
     for l1 in raw_dict["stp-interface-information"]:
+        # Loop over VLANs
         for l2 in l1["stp-instance"]:
-            stp_int_dict = {}
+            # Check if the "vlan-id" key exists
             if "vlan-id" in l2.keys():
+                # Create dict for this vlan
                 for vlan_id in l2["vlan-id"]:
+                    #print("VLAN ID: {}".format(vlan_id["data"]))
+                    vlan_stp_dict = {}
                     if one_vlan:
                         if vlan_id["data"] == selected_vlan:
-                            stp_int_dict["vlan_id"] = vlan_id["data"]
+                            vlan_stp_dict["vlan_id"] = vlan_id["data"]
                             match_vlan = True
                     else:
-                        stp_int_dict["vlan_id"] = vlan_id["data"]
+                        vlan_stp_dict["vlan_id"] = vlan_id["data"]
                         match_vlan = True
+                    # Check if the correct vlan was matched
                     if match_vlan:
+                        # Loop over the interfaces for this specific VLAN
                         for stp_ints in l2["stp-interfaces"]:
-                            stp_int_dict["interfaces"] = []
+                            vlan_stp_dict["interfaces"] = []
                             for stp_int in stp_ints["stp-interface-entry"]:
                                 # Create a separate dict for each interface
                                 stp_intf_dict = {}
                                 for int_name in stp_int["interface-name"]:
                                     stp_intf_dict["int_name"] = int_name["data"]
-                                    print("Interface Name: {}".format(stp_int_dict["int_name"]))
+                                    #print("Interface Name: {}".format(stp_intf_dict["int_name"]))
                                     break
                                 for port_cost in stp_int["port-cost"]:
                                     stp_intf_dict["port_cost"] = port_cost["data"]
@@ -336,14 +342,18 @@ def extract_json_stp_int(raw_dict, selected_vlan='all'):
                                     stp_intf_dict["port_role"] = port_role["data"]
                                     break
                                 # Add interface to vlan interface list
-                                stp_int.dict["interfaces"].append(stp_intf_dict)
-                            break
-                        break
-
-
+                                vlan_stp_dict["interfaces"].append(stp_intf_dict)
+                        # Append this to the larger LD or return the dictionary
+                        if selected_vlan != 'all' and one_vlan:
+                            return vlan_stp_dict
+                        elif vlan_stp_dict:
+                            stp_int_ld.append(vlan_stp_dict)
+                            match_vlan = False
+                    break
             else:
-                print("Skipping RSTP instance...")
-
+                pass
+                #print("Skipping RSTP instance...")
+    return stp_int_ld
 # This function assumes capturing "show spanning-tree bridge | display json" output
 # stp_dict {'vlan-id': '', 'vlan_rb_mac': '', 'vlan_rb_prio': '', 'vlan_local_mac': '', 'vlan_local_prio': '',
 #           'topology_change_count': '', 'time_since_last_tc': '', 'vlan_root_port': '', 'vlan_root_cost': ''}
@@ -604,7 +614,7 @@ def get_upstream_host(lldp_dict, root_port):
     # print(upstream_peer)
     return upstream_peer
 
-def get_downstream_hosts(lldp_dict, root_port):
+def get_downstream_hosts(lldp_dict, root_port, stp_int_dict):
     downstream_raw = []
     downstream_list = []
     # print("Root Port: {}".format(root_port))
@@ -615,14 +625,16 @@ def get_downstream_hosts(lldp_dict, root_port):
             # print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
             host_int_dict["name"] = one_int["remote_sysname"]
             host_int_dict["intf"] = one_int["local_int"]
-            # print("Host Int Dict: {}".format(host_int_dict))
+            for intf in stp_int_dict["interfaces"]:
+                if intf["int_name"] == one_int["local_int"]:
+                    host_int_dict["state"] = intf["port_state"]
+                    host_int_dict["role"] = intf["port_role"]
             downstream_raw.append(host_int_dict)
             # print("Downstream Raw: {}".format(downstream_raw))
     # Remove duplicates
-    # print("List")
-    # print(downstream_raw)
     for i in downstream_raw:
         if i not in downstream_list:
+            #print("Host Int: {}".format(i))
             downstream_list.append(i)
     return downstream_list
 
@@ -693,10 +705,10 @@ def capture_chassis_info(selected_vlan, host, using_network):
             vlan_dict = extract_json_vlan_info(get_file_vlan_info(host), selected_vlan)
             # Pull STP info from JSON file
             stp_dict = extract_json_stp_info(get_file_stp_info(host), selected_vlan)
-            # Pull STP Interface infro from JSON file
+            # Pull STP Interface info from JSON file
             stp_int_dict = extract_json_stp_int(get_file_stp_int(host), selected_vlan)
-            print("STP INT DICT")
-            print(stp_int_dict)
+            #print("STP INT DICT")
+            #print(stp_int_dict)
 
             # Pull LLDP info from JSON file
             if vlan_dict:
@@ -707,6 +719,7 @@ def capture_chassis_info(selected_vlan, host, using_network):
         # Computed variables
         chassis_dict["vlan"] = vlan_dict
         chassis_dict["stp"] = stp_dict
+        chassis_dict["stp-int"] = stp_int_dict
         chassis_dict["lldp"] = lldp_dict
         # Check if vlan dict exists
         if vlan_dict:
@@ -716,7 +729,7 @@ def capture_chassis_info(selected_vlan, host, using_network):
             else:
                 chassis_dict["root_bridge"] = False
             chassis_dict["upstream_peer"] = get_upstream_host(lldp_dict, stp_dict["vlan_root_port"])
-            chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
+            chassis_dict["downstream_peers"] = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"], stp_int_dict)
             chassis_dict["non-lldp-intf"] = extract_non_lldp_intf(lldp_dict, vlan_dict)
         # print("Chassis Dict")
         # print(chassis_dict)
@@ -820,7 +833,8 @@ def create_chart():
                         first_intf = False
                     else:
                         host_content = ["-", "-", "-", "-", "-", "-"]
-                    host_content.append(down_peer["intf"])
+                    intf = down_peer["intf"] + "(" + down_peer["state"] + "|" + down_peer["role"] + ")"
+                    host_content.append(intf)
                     host_content.append(down_peer["name"])
                     myTable.add_row(host_content)
         # Host the doesn't have VLAN
