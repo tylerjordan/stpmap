@@ -1013,12 +1013,12 @@ def scan_loop(selected_vlan, hosts, using_network):
             my_dict["no_vlan"] = True
             all_chassis["chassis"].append(my_dict)
 
-def combine_ether_vlan_data(ether_dict, vlan_ld):
+def combine_ether_vlan_data(ether_dict, vlan_ld, phy_ld):
     # Find first two vlan / interface combinations
-    print("Ether Dict Original")
-    pprint(ether_dict)
-    print("Vlan LD Original")
-    pprint(vlan_ld)
+    #print("Ether Dict Original")
+    #pprint(ether_dict)
+    #print("Vlan LD Original")
+    #pprint(vlan_ld)
 
     # Loop over the vlan records
     for vlan_rec in vlan_ld:
@@ -1034,6 +1034,16 @@ def combine_ether_vlan_data(ether_dict, vlan_ld):
             # Loop over the ether records and update if interface/vlan matches
             for ether_intf in ether_dict["interfaces"]:
                 if ether_intf["name"] == vrec["vlan_intf"]:
+                    #print("Ether Intf...{}".format(ether_intf["name"]))
+                    # Extract Interface Specific Info
+                    for phy_int in phy_ld:
+                        # Match the interfaces, need to remove last two characters to match physical interface
+                        if phy_int["name"] == ether_intf["name"][:-2]:
+                            print("Matched phy name...{}".format(ether_intf["name"]))
+                            ether_intf["oper_status"] = phy_int["oper_status"]
+                            ether_intf["admin_status"] = phy_int["admin_status"]
+                            ether_intf["speed"] = phy_int["speed"]
+                    # Add macs to the interface
                     for ether_mac in ether_intf["macs"]:
                         if ether_mac["vlan_id"] == vrec["vlan_tag"]:
                             print("Updating records for Intf: {} Vlan: {}".format(vrec["vlan_intf"], vrec["vlan_tag"]))
@@ -1041,8 +1051,6 @@ def combine_ether_vlan_data(ether_dict, vlan_ld):
                             ether_mac["mode"] = vrec["mode"]
                             ether_mac["active"] = vrec["active"]
     return ether_dict
-
-
 
 # Ether_LD Format
 #ether_dict = { "interfaces": [
@@ -1229,12 +1237,19 @@ def ether_switch_net():
             temp_chassis = {}
             temp_chassis["chassis"] = chassis_facts["hostname"]
             temp_chassis["model"] = chassis_facts["model"]
+            temp_chassis["interfaces"] = []
 
             # Interface Information
             phyinfo = get_net_interface(jdev, ip)
+            phy_ld = []
             for info in phyinfo:
+                phy_dict = {}
                 print("Interface Name: {} Oper Status: {} Admin Status: {} Speed: {}".format(info.name, info.oper, info.admin, info.speed))
-            exit()
+                phy_dict["name"] = info.name
+                phy_dict["oper_status"] = info.oper
+                phy_dict["admin_status"] = info.admin
+                phy_dict["speed"] = info.speed
+                phy_ld.append(phy_dict)
 
             # Ethernet Switching Info Collection
             etherswinfo = get_net_ethersw_info(jdev, ip)
@@ -1251,12 +1266,27 @@ def ether_switch_net():
             vlan_ld = vlan_intf_data(vlanextinfo)
 
             # Combine Data
-            parsed_results = combine_ether_vlan_data(ether_dict, vlan_ld)
+            parsed_results = combine_ether_vlan_data(ether_dict, vlan_ld, phy_ld)
+            #print("Parsed Results")
+            #pprint(parsed_results)
 
-            get_suspect_interfaces(parsed_results)
+            # Add data to chassis data structure
+            for intf in parsed_results["interfaces"]:
+                temp_chassis["interfaces"].append(intf)
+
+            # Add to all chassis structure
+            all_chassis.append(temp_chassis)
+
+            print("All chassis")
+            pprint(all_chassis)
+
+            #get_suspect_interfaces(parsed_results)
             exit()
 
-#def get_suspect_interfaces(parsed_results):
+# - Extract the problems
+#   - interfaces that have two mac addresses on the same vlan
+#   - interfaces that are running at a speed less than 1G
+def get_suspect_interfaces(parsed_results):
 
 
 
