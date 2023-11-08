@@ -33,7 +33,7 @@ import sys
 import csv
 import logging
 import time
-import pprint
+from pprint import pprint
 from operator import itemgetter
 
 import netaddr
@@ -46,6 +46,7 @@ from jnpr.junos.exception import *
 from jnpr.junos.op.lldp import LLDPNeighborTable
 from jnpr.junos.op.stpbridge import STPBridgeTable
 from jnpr.junos.op.vlan import VlanTable
+from jnpr.junos.op.elsethernetswitchingtable import ElsEthernetSwitchingTable
 from jnpr.junos.op.phyport import PhyPortTable
 from ncclient.operations.errors import TimeoutExpiredError
 from utility import *
@@ -622,7 +623,7 @@ def get_downstream_hosts(lldp_dict, root_port, stp_int_dict):
     for one_int in lldp_dict:
         host_int_dict = {}
         if one_int["local_int"] != root_port:
-            # print("Local Int: {} Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
+            #print("Local Int: {} Remote Sysname: {}".format(one_int["local_int"], one_int["remote_sysname"]))
             host_int_dict["name"] = one_int["remote_sysname"]
             host_int_dict["intf"] = one_int["local_int"]
             for intf in stp_int_dict["interfaces"]:
@@ -671,10 +672,30 @@ def get_net_lldp_info(jdev, ip):
     lldpneigh.get()
     return lldpneigh
 
+def get_net_ethersw_info(jdev, ip):
+    stdout.write("-> Pulling Ethernet Switching Table info from " + ip + " ... \n")
+    ethersw = ElsEthernetSwitchingTable(jdev)
+    ethersw.get()
+    return ethersw
+
 def get_file_lldp_info(host):
     lldp_json_file = os.path.join(selected_repo, (host + "_lldp.json"))
     raw_dict = json_to_dict(lldp_json_file)
     return raw_dict
+
+def get_net_facts(jdev, ip):
+    facts_dict = {}
+    stdout.write("-> Pulling basic facts from " + ip + " ... \n")
+    facts_dict["hostname"] = jdev.facts['hostname']
+    facts_dict["model"] = jdev.facts['model']
+    facts_dict["version"] = jdev.facts['version']
+    return facts_dict
+
+def get_net_interface(jdev, ip):
+    stdout.write("-> Pulling basic interface info from " + ip + " ... \n")
+    phyintf = PhyPortTable(jdev)
+    phyintf.get()
+    return phyintf
 
 def capture_chassis_info(selected_vlan, host, using_network):
     if host in dev_list.keys():
@@ -850,42 +871,52 @@ def create_chart():
         w.write(str(myTable))
 
 def stp_map_files():
-    print("*" * 50 + "\n" + " " * 10 + "STP MAP using Network\n" + "*" * 50)
+    print("*" * 50 + "\n" + " " * 10 + "STP MAP using JSON Files\n" + "*" * 50)
     # Provide selection for sending a single command or multiple commands from a file
-    hosts = []
     hosts_list = []
     # Capture the available devices
     for a_host in dev_list.keys():
         hosts_list.append(a_host)
-    # Select a host to start with
-    host = getOptionAnswer("Select a starting Host", hosts_list)
 
-    # Capture the available VLANs on the host selected
-    vlan_json_file = os.path.join(selected_repo, (host + "_vlan-ext.json"))
-    raw_dict = json_to_dict(vlan_json_file)
-    vlan_list = collect_vlan_list_json(raw_dict)
+    # Collect all the vlans via json files, using repo location
+    vlan_host_ld = collect_all_vlans_json(selected_repo)
+    #print("VLAN HOST LD")
+    #print(vlan_host_ld)
 
-    # Select a VLAN from the host list
+    # Select a VLAN from the host list then sort this list numerically
+    vlan_list = []
+    for vlan in vlan_host_ld:
+        if vlan["vlan"].isnumeric():
+            vlan_list.append(vlan["vlan"])
+    # Sort the valid vlans
+    vlan_list.sort(key=int)
+
+    # Ask for a vlan to analyze
     selected_vlan = getOptionAnswer("Select a VLAN to analyze", vlan_list)
 
-    # Add selected host to the list
-    hosts.append(host)
+    # Get host list based on vlan selected
+    host_list = []
+    for my_vlan in vlan_host_ld:
+        if my_vlan["vlan"] == selected_vlan:
+            host_list = my_vlan["hosts"]
 
-    scan_loop(selected_vlan, hosts, using_network=False)
-
-    # print("ALL CHASSIS")
-    # print(all_chassis)
-    # Print the table
-    print("***********************")
-    print("* Spanning Tree Chart *")
-    print("***********************")
-    create_chart()
-    print("***********************")
-    print("* Spanning Tree Stats *")
-    print("***********************")
-    create_stp_stats()
-    # create_stp_paths()
-    # exit()
+    # Process to capture information from hosts
+    if selected_vlan:
+        scan_loop(selected_vlan, host_list, using_network=False)
+        # print("ALL CHASSIS")
+        # print(all_chassis)
+        # Print the table
+        print("***********************")
+        print("* Spanning Tree Chart *")
+        print("***********************")
+        create_chart()
+        print("***********************")
+        print("* Spanning Tree Stats *")
+        print("***********************")
+        create_stp_stats()
+        # create_stp_paths()
+    else:
+        exit()
 
 def scan_loop(selected_vlan, hosts, using_network):
     # Loop over hosts list
@@ -924,11 +955,11 @@ def scan_loop(selected_vlan, hosts, using_network):
                 my_dict["non_lldp_intf"] = chassis_dict["non-lldp-intf"]
                 my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
 
-                if chassis_dict["downstream_peers"]:
-                    for peer in chassis_dict["downstream_peers"]:
-                        if peer["name"] in dev_list:
-                            hosts.append(peer["name"])
-                            print("-> Added {} to scan list (D1)".format(peer["name"]))
+                #if chassis_dict["downstream_peers"]:
+                #    for peer in chassis_dict["downstream_peers"]:
+                #        if peer["name"] in dev_list:
+                #            hosts.append(peer["name"])
+                #            print("-> Added {} to scan list (D1)".format(peer["name"]))
 
                 # Add this chassis to the list
                 all_chassis["chassis"].append(my_dict)
@@ -955,11 +986,11 @@ def scan_loop(selected_vlan, hosts, using_network):
                     my_dict["l3_interface"] = chassis_dict["vlan"]["l3interface"]
                     my_dict["root_cost"] = chassis_dict["stp"]["vlan_root_cost"]
                     # Add downstream interfaces
-                    if chassis_dict["downstream_peers"]:
-                        for peer in chassis_dict["downstream_peers"]:
-                            if peer["name"] in dev_list and peer["name"] not in hosts:
-                                hosts.append(peer["name"])
-                                print("-> Added {} to scan list (D2)".format(peer["name"]))
+                    #if chassis_dict["downstream_peers"]:
+                    #    for peer in chassis_dict["downstream_peers"]:
+                    #        if peer["name"] in dev_list and peer["name"] not in hosts:
+                    #            hosts.append(peer["name"])
+                    #            print("-> Added {} to scan list (D2)".format(peer["name"]))
                             # print("-> Added {} to scan list".format(peer["name"]))
                     # Add this chassis to the list
                     all_chassis["chassis"].append(my_dict)
@@ -968,10 +999,11 @@ def scan_loop(selected_vlan, hosts, using_network):
                 else:
                     print("-> {} is NOT the root bridge for VLAN({})".format(host, chassis_dict["vlan"]["name"],
                                                                              chassis_dict["vlan"]["tag"]))
-                    # Append the upstream device name for the next device to check
-                    if chassis_dict["upstream_peer"]["name"] in dev_list and chassis_dict["upstream_peer"]["name"] not in hosts:
-                        hosts.append(chassis_dict["upstream_peer"]["name"])
-                        print("-> Added {} to scan list (D3)".format(chassis_dict["upstream_peer"]["name"]))
+                    # Re-add this device to the host
+                    hosts.append(host)
+                    #if chassis_dict["upstream_peer"]["name"] in dev_list and chassis_dict["upstream_peer"]["name"] not in hosts:
+                    #    hosts.append(chassis_dict["upstream_peer"]["name"])
+
             # Add the backup root bridge name to the large dict
             all_chassis["backup_root_bridge"] = backup_rb["name"]
         # This chassis doesn't have the chosen VLAN
@@ -980,6 +1012,252 @@ def scan_loop(selected_vlan, hosts, using_network):
             my_dict["name"] = host
             my_dict["no_vlan"] = True
             all_chassis["chassis"].append(my_dict)
+
+def combine_ether_vlan_data(ether_dict, vlan_ld):
+    # Find first two vlan / interface combinations
+    print("Ether Dict Original")
+    pprint(ether_dict)
+    print("Vlan LD Original")
+    pprint(vlan_ld)
+
+    # Loop over the vlan records
+    for vlan_rec in vlan_ld:
+        vrec = {}
+        vrec["vlan_tag"] = vlan_rec["vlan_tag"]
+        # Collect the necessary information to update the ether records
+        for vlan_intf in vlan_rec["interfaces"]:
+            print("Working on Intf: {} Vlan: {}".format(vlan_intf["name"], vlan_rec["vlan_tag"]))
+            vrec["vlan_intf"] = vlan_intf["name"]
+            vrec["tagged"] = vlan_intf["tagness"]
+            vrec["mode"] = vlan_intf["mode"]
+            vrec["active"] = vlan_intf["active"]
+            # Loop over the ether records and update if interface/vlan matches
+            for ether_intf in ether_dict["interfaces"]:
+                if ether_intf["name"] == vrec["vlan_intf"]:
+                    for ether_mac in ether_intf["macs"]:
+                        if ether_mac["vlan_id"] == vrec["vlan_tag"]:
+                            print("Updating records for Intf: {} Vlan: {}".format(vrec["vlan_intf"], vrec["vlan_tag"]))
+                            ether_mac["tagged"] = vrec["tagged"]
+                            ether_mac["mode"] = vrec["mode"]
+                            ether_mac["active"] = vrec["active"]
+    return ether_dict
+
+
+
+# Ether_LD Format
+#ether_dict = { "interfaces": [
+#    { "name": "ge-0/0/0.0",
+#      "macs": [
+#          { "mac": "ab:cd:ef:ab:cd:ef",
+#            "vlan_id": "100",
+#            "tagged": None,
+#            "mode": None,
+#            "active": False
+#          },
+#          {}
+#        ],
+#    }
+#]
+#}
+def ether_switch_intf_data(raw_ether_data):
+    ether_dict = {}
+    ether_dict["interfaces"] = []
+    temp_ld = []
+
+    print("Performing Data Formatting...")
+    # Extract all info into a list of dictionaries
+    for info in raw_ether_data:
+        ether_row = {}
+        ether_row["interface"] = info.logical_interface
+        ether_row["mac"] = info.mac_address
+        ether_row["vlan_id"] = info.vlan_id
+        temp_ld.append(ether_row)
+
+    # Loop over the record list
+    for temp_rec in temp_ld:
+        # Create new mac record
+        new_mac = {}
+        new_mac["mac"] = temp_rec["mac"]
+        new_mac["vlan_id"] = temp_rec["vlan_id"]
+        new_mac["tagged"] = None
+        new_mac["mode"] = None
+        new_mac["active"] = False
+        # If there are records currently in this LD
+        if ether_dict["interfaces"]:
+            intf_matched = False
+            # Loop over the interfaces to try to find a match
+            for ether_int_rec in ether_dict["interfaces"]:
+                # If the interfaces match, create and add a record to the
+                if ether_int_rec["name"] == temp_rec["interface"]:
+                    intf_matched = True
+                    # If "macs" key exists, create and add a dict to the list
+                    if "macs" in ether_int_rec.keys():
+                        ether_int_rec["macs"].append(new_mac)
+                    # If "macs" key doesn't exist,
+                    else:
+                        print("The macs key doesn't exist")
+            # If the interface from temp does not match any existing interfaces, create a new interface dict
+            if not intf_matched:
+                # Create the new interface dict
+                new_intf = {}
+                new_intf["name"] = temp_rec["interface"]
+                new_intf["macs"] = []
+                # Add the new mac dict to the interface
+                new_intf["macs"].append(new_mac)
+                # Add the interface dict to the larger dict
+                ether_dict["interfaces"].append(new_intf)
+            else:
+                print("The new mac was added.")
+        # If there aren't any interfaces added to ether dict
+        else:
+            # Create a new interface dict
+            new_intf = {}
+            new_intf["name"] = temp_rec["interface"]
+            new_intf["macs"] = []
+            # Add the new mac dict to the interface
+            new_intf["macs"].append(new_mac)
+            # Add the interface dict to the larger dict
+            ether_dict["interfaces"].append(new_intf)
+    return ether_dict
+
+#vlan_ld = [ { "vlan_name": "vlan-100",
+#            "vlan_tag": "100",
+#            "vlan_active": True,
+#            "interfaces": [
+#                { "name": "ge-0/0/0",
+#                "tagness": True,
+#                "mode": "trunk",
+#                "active": True
+#                }
+#            ]
+#        } ]
+def vlan_intf_data(raw_vlan_data):
+    vlan_ld = []
+    temp_ld = []
+
+    # Extract info from raw data structure
+    for info in raw_vlan_data:
+        vlan_dict = {}
+        vlan_dict["name"] = info.name
+        vlan_dict["tag"] = info.tag
+        vlan_dict["state"] = info.state
+        vlan_dict["interfaces"] = info.members
+        vlan_dict["tagness"] = info.tagness
+        vlan_dict["modes"] = info.mode
+        temp_ld.append(vlan_dict)
+
+    # Loop over records
+    for temp_rec in temp_ld:
+        vlan_dict = {}
+        vlan_dict["vlan_name"] = temp_rec["name"]
+        vlan_dict["vlan_tag"] = temp_rec["tag"]
+        if temp_rec["state"] == "Active":
+            vlan_dict["vlan_active"] = True
+        else:
+            vlan_dict["vlan_active"] = False
+        vlan_dict["interfaces"] = []
+
+        # If interfaces is a list (of strings) or string
+        if type(temp_rec["interfaces"]) == list:
+            print("Interfaces is a list...")
+            list_len = len(temp_rec["interfaces"])
+            list_num = 0
+            while list_num < list_len:
+                temp_dict = {}
+                if "*" in temp_rec["interfaces"][list_num]:
+                    temp_dict["active"] = True
+                else:
+                    temp_dict["active"] = False
+                if temp_dict["active"]:
+                    temp_dict["name"] = temp_rec["interfaces"][list_num][:len(temp_rec["interfaces"][list_num])-1]
+                else:
+                    temp_dict["name"] = temp_rec["interfaces"][list_num]
+                if temp_rec["tagness"][list_num] == "tagged":
+                    temp_dict["tagness"] = True
+                else:
+                    temp_dict["tagness"] = False
+                temp_dict["mode"] = temp_rec["modes"][list_num]
+                list_num += 1
+                vlan_dict["interfaces"].append(temp_dict)
+        # If interfaces is a string...
+        elif temp_rec["interfaces"]:
+            temp_dict = {}
+            if "*" in temp_rec["interfaces"]:
+                temp_dict["active"] = True
+            else:
+                temp_dict["active"] = False
+            if temp_dict["active"]:
+                temp_dict["name"] = temp_rec["interfaces"][:len(temp_rec["interfaces"])-1]
+            else:
+                temp_dict["name"] = temp_rec["interfaces"]
+            if temp_rec["tagness"] == "tagged":
+                temp_dict["tagness"] = True
+            else:
+                temp_dict["tagness"] = False
+            temp_dict["mode"] = temp_rec["modes"]
+            vlan_dict["interfaces"].append(temp_dict)
+        # Otherwise, if interfaces is not a good format, return empty interfaces list
+        else:
+            pass
+
+        # Add this to the main list
+        vlan_ld.append(vlan_dict)
+    return vlan_ld
+
+#all_chassis = [ { "chassis": "EX1",
+#                "interfaces": [
+#                    { "name": "ge-0/0/0",
+#                      "vlan-id": "100",
+#                      "tagged" : None,
+#                      "mode": None }
+#                ]
+def ether_switch_net():
+    print("*" * 50 + "\n" + " " * 10 + "Ether Switching using Network\n" + "*" * 50)
+    # Provide selection for sending a single command or multiple commands from a file
+    all_chassis = []
+
+    #my_ips = chooseDevices(iplist_dir)
+    my_ips = ['132.32.254.2']
+    if my_ips:
+        # Loop over commands and devices
+        for ip in my_ips:
+            stdout.write("-> Connecting to " + ip + " ... ")
+            jdev = connect(ip)
+            # Chassis Facts
+            chassis_facts = get_net_facts(jdev, ip)
+            print("Hostname: {} Model: {}".format(chassis_facts["hostname"], chassis_facts["model"]))
+            temp_chassis = {}
+            temp_chassis["chassis"] = chassis_facts["hostname"]
+            temp_chassis["model"] = chassis_facts["model"]
+
+            # Interface Information
+            phyinfo = get_net_interface(jdev, ip)
+            for info in phyinfo:
+                print("Interface Name: {} Oper Status: {} Admin Status: {} Speed: {}".format(info.name, info.oper, info.admin, info.speed))
+            exit()
+
+            # Ethernet Switching Info Collection
+            etherswinfo = get_net_ethersw_info(jdev, ip)
+            for info in etherswinfo:
+                print("Logical Interface: {} MAC: {} VLAN: {}".format(info.logical_interface, info.mac_address, info.vlan_id))
+            print("Ether Switching Data")
+            ether_dict = ether_switch_intf_data(etherswinfo)
+
+            # Vlan Info Collection
+            vlanextinfo = get_net_vlan_info(jdev, ip)
+            for info in vlanextinfo:
+                print("Vlan Name(Tag): {}({}) State: {} Member: {} Tagness: {} Mode: {}".format(info.name, info.tag, info.state, info.members, info.tagness, info.mode))
+            print("VLAN INTF Data")
+            vlan_ld = vlan_intf_data(vlanextinfo)
+
+            # Combine Data
+            parsed_results = combine_ether_vlan_data(ether_dict, vlan_ld)
+
+            get_suspect_interfaces(parsed_results)
+            exit()
+
+#def get_suspect_interfaces(parsed_results):
+
 
 
 # Function for running operational commands to multiple devices
@@ -1020,7 +1298,6 @@ def stp_map_net():
     else:
         print("\n!! Configuration deployment aborted... No IPs defined !!!\n")
 
-
 # Function to analyze the spanning tree domains of VLANs in the network
 def root_bridge_analysis(myselect="file"):
     print("*" * 50 + "\n" + " " * 10 + "Root Bridge Analysis\n" + "*" * 50)
@@ -1043,14 +1320,12 @@ def root_bridge_analysis(myselect="file"):
         for one_vlan in raw_vlan_list:
             vlan_only.append(one_vlan["tag"])
         nodup_vlans = remove_duplicates(vlan_only)
+    # Collect all vlans via json files
     else:
-        # Collect all the vlans via json files, using repo location
-        for host in dev_list.keys():
-            vlan_json_file = os.path.join(selected_repo, (host + "_vlan-ext.json"))
-            v_list = collect_vlan_list_json(json_to_dict(vlan_json_file))
-            all_vlans = all_vlans + v_list
-        # Remove dupliate vlans
-        nodup_vlans = remove_duplicates(all_vlans)
+        nodup_vlans = []
+        vlan_host_ld = collect_all_vlans_json(selected_repo)
+        for vh in vlan_host_ld:
+            nodup_vlans.append(vh["vlan"])
 
     # Create base of data structure to store all info
     for vlan in nodup_vlans:
@@ -1122,13 +1397,21 @@ def root_bridge_analysis(myselect="file"):
                                 mac_ld.append(mac_dict)
                                 first_pass = False
                             # Select the downstream peers associated with the VLAN only
-                            downstream_ld = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"])
-                            temp_dict["downstream-peers"] = []
-                            for down_dict in downstream_ld:
-                                for member in vlan_dict["members"]:
-                                    if down_dict["intf"] == member.split(".")[0] and "*" in member:
-                                        temp_dict["downstream-peers"].append(down_dict["name"])
-                                        break
+                            for stp_int_dict in stp_int_temp_ld:
+                                if stp_int_dict["vlan_id"] == vlan_dict["tag"]:
+                                    #print("Matched VLAN: {}".format(vlan_dict["tag"]))
+                                    downstream_ld = get_downstream_hosts(lldp_dict, stp_dict["vlan_root_port"], stp_int_dict)
+                                    temp_dict["downstream-peers"] = []
+                                    for down_dict in downstream_ld:
+                                        for member in vlan_dict["members"]:
+                                            if down_dict["intf"] == member.split(".")[0] and "*" in member:
+                                                temp_dict["downstream-peers"].append(down_dict["name"])
+                                                break
+                                    break
+                    # Check if downstream-peers is in the dictionary
+                    if "downstream-peers" not in temp_dict.keys():
+                        #print(temp_dict)
+                        temp_dict["downstream-peers"] = []
                     # Add the chassis dict to the "chassis" list
                     vlan["chassis"].append(temp_dict)
     # Print table to CLI
@@ -1167,6 +1450,36 @@ def collect_vlan_list_net(vlan_ld):
         if vlan["tag"]:
             vlan_list.append(vlan["tag"])
     return vlan_list
+
+def collect_all_vlans_json(selected_repo):
+    vlan_host_ld = []
+    # Collect all the vlans via json files, using repo location
+    for host in dev_list.keys():
+        vlan_json_file = os.path.join(selected_repo, (host + "_vlan-ext.json"))
+        v_list = collect_vlan_list_json(json_to_dict(vlan_json_file))
+        # Loop over the complete VLAN list
+        for this_vlan in v_list:
+            vlan_found = False
+            # Loop over the LD to find the correct vlan
+            for vh_dict in vlan_host_ld:
+                # If the VLAN dict exists, add the current host to the list
+                if vh_dict["vlan"] == this_vlan:
+                    # Add the host to the hosts list for this vlan
+                    vh_dict["hosts"].append(host)
+                    vlan_found = True
+                    break
+            # If the VLAN wasn't found, create a new dictionary and add the host to hosts and dict to the LD
+            if not vlan_found:
+                # Create dictionary entry for this vlan
+                vlan_host_dict = {}
+                vlan_host_dict["vlan"] = this_vlan
+                vlan_host_dict["hosts"] = []
+                # Add the current host to the hosts of this dict
+                vlan_host_dict["hosts"].append(host)
+                # Add the dictionary to the LD
+                vlan_host_ld.append(vlan_host_dict)
+
+    return vlan_host_ld
 
 def create_root_analysis(vlans_ld, mac_ld):
     key = "upstream_peer"
@@ -1235,7 +1548,8 @@ def create_root_analysis(vlans_ld, mac_ld):
                 # Apply row to sort list
                 vlan_sort_list.append(row_contents)
             else:
-                print("Vlan: {} Chassis: {} did not have a local-mac.".format(vlan["vlan"], chassis["host"]))
+                pass
+                #print("Vlan: {} Chassis: {} did not have a local-mac.".format(vlan["vlan"], chassis["host"]))
         # Sort the rows for this VLAN so that 0 root costs are first
         sorted_list = sorted(vlan_sort_list, key=itemgetter(8))
 
@@ -1274,7 +1588,7 @@ if __name__ == "__main__":
 
     # Define menu options
     my_options = ['Scan Vlans (Files)', 'Scan Vlans (Network)', 'Root Bridge Analysis (File)',
-                  'Root Bridge Analysis (Network)', 'Quit']
+                  'Root Bridge Analysis (Network)', 'Mac Address Function', 'Quit']
 
     # Get menu selection
     while True:
@@ -1296,4 +1610,8 @@ if __name__ == "__main__":
             password = getpass(prompt="\nEnter your password: ")
             root_bridge_analysis('net')
         elif answer == "5":
+            password = 'f0r5ak3n'
+            #password = getpass(prompt="\nEnter your password: ")
+            ether_switch_net()
+        elif answer == "6":
             quit()
