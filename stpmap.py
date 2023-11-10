@@ -1225,7 +1225,7 @@ def ether_switch_net():
     all_chassis = []
 
     #my_ips = chooseDevices(iplist_dir)
-    my_ips = ['132.32.254.2']
+    my_ips = ['132.32.254.2', '132.32.255.1']
     if my_ips:
         # Loop over commands and devices
         for ip in my_ips:
@@ -1277,17 +1277,70 @@ def ether_switch_net():
             # Add to all chassis structure
             all_chassis.append(temp_chassis)
 
-            print("All chassis")
-            pprint(all_chassis)
+        print("All chassis")
+        pprint(all_chassis)
 
-            #get_suspect_interfaces(parsed_results)
-            exit()
+        get_suspect_interfaces(all_chassis)
+        exit()
 
 # - Extract the problems
 #   - interfaces that have two mac addresses on the same vlan
 #   - interfaces that are running at a speed less than 1G
-def get_suspect_interfaces(parsed_results):
+def get_suspect_interfaces(all_chassis):
+    results_ld = []
 
+    for chassis in all_chassis:
+        # Loop over the interfaces in the chassis
+        for intf in chassis["interfaces"]:
+            found_speed_discrep = False
+            found_mac_discrep = False
+            # Check if the interface is up/up
+            if intf["admin_status"] == "up" and \
+                    intf["oper_status"] == "up" and \
+                    len(intf["macs"]) > 1:
+                access_num = 0
+                vlan_id = {}
+                vlan_matched = "0"
+                # Loop over macs
+                for one_mac in intf["macs"]:
+                    if one_mac["mode"] == "access":
+                        access_num += 1
+                        if one_mac["vlan_id"] in vlan_id.keys():
+                            vlan_id[one_mac["vlan_id"]] += 1
+                        else:
+                            vlan_id[one_mac["vlan_id"]] = 1
+                for key in vlan_id:
+                    if vlan_id[key] > 1:
+                        print("Found {} MACs in VLAN ID: {}".format(vlan_id[key], key))
+                        found_mac_discrep = True
+                        vlan_matched = key
+                if intf["speed"] == "100mbps" or intf["speed"] == "10mbps":
+                    print("Found interface speed at {}".format(intf["speed"]))
+                    found_speed_discrep = True
+                if found_mac_discrep:
+                    captured_macs = {}
+                    captured_macs["chassis"] = chassis["chassis"]
+                    captured_macs["interface"] = intf["name"]
+                    captured_macs["speed"] = intf["speed"]
+                    captured_macs["admin-oper"] = intf["admin_status"] + "|" + intf["oper_status"]
+                    for one_mac in intf["macs"]:
+                        if one_mac["vlan_id"] == vlan_matched:
+                            captured_macs["vlan_id"] = one_mac["vlan_id"]
+                            captured_macs["mac"] = one_mac["mac"]
+                            captured_macs["mode"] = one_mac["mode"]
+                            results_ld.append(captured_macs)
+                elif found_speed_discrep:
+                    captured_macs = {}
+                    captured_macs["chassis"] = chassis["chassis"]
+                    captured_macs["interface"] = intf["name"]
+                    captured_macs["speed"] = intf["speed"]
+                    captured_macs["admin-oper"] = intf["admin_status"] + "|" + intf["oper_status"]
+                    captured_macs["vlan_id"] = None
+                    captured_macs["mac"] = None
+                    captured_macs["mode"] = None
+                    results_ld.append(captured_macs)
+    print("Results LD")
+    pprint(results_ld)
 
 
 # Function for running operational commands to multiple devices
