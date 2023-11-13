@@ -101,6 +101,7 @@ def detect_env():
     global stp_chart
     global stp_stats
     global mac_scan_results
+    global mac_scan_csv
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
     if platform.system().lower() == "windows":
@@ -130,6 +131,7 @@ def detect_env():
     stp_chart = os.path.join(dir_path, "stp_chart.txt")
     stp_stats = os.path.join(dir_path, "stp_stats.txt")
     mac_scan_results = os.path.join(dir_path, "mac_scan_results.txt")
+    mac_scan_csv = os.path.join(dir_path, "mac_scan_csv.csv")
 
 # Handles arguments provided at the command line
 def getargs(argv):
@@ -1352,10 +1354,20 @@ def get_suspect_interfaces(all_chassis):
 def print_suspect_interfaces(results_ld):
     # Define the table column headings
     myTable = PrettyTable(["Chassis", "Interface", "Status", "Speed", "Host Mac", "Vlan", "Mode"])
+    breakrow = ['------', '---------', '------', '-----', '----------------', '-----', '-----']
+    first_pass = True
+    last_intf = None
 
     # Loop over results and assign results to a list to populate row
     for row in results_ld:
         row_list = []
+        if first_pass:
+            last_intf = row["interface"]
+            first_pass = False
+        elif row["interface"] != last_intf:
+            last_intf = row["interface"]
+            # Add a break line to separate interfaces
+            myTable.add_row(breakrow)
         row_list.append(row["chassis"])
         row_list.append(row["interface"])
         row_list.append(row["admin-oper"])
@@ -1368,9 +1380,14 @@ def print_suspect_interfaces(results_ld):
     # Print the complete table
     print(myTable)
 
-    # Write it to a table
+    # Write it to a text table
     with open(mac_scan_results, 'w') as w:
         w.write(str(myTable))
+
+    # Write it to a CSV file
+    keys = ['chassis', 'interface', 'admin-oper', 'speed', 'mac', 'vlan_id', 'mode']
+    listDictCSV(results_ld, mac_scan_csv, keys)
+
 
 # Function for running operational commands to multiple devices
 def stp_map_net():

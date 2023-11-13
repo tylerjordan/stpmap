@@ -302,14 +302,16 @@ def check_sort(ip_list):
     return checked
 
 # Converts listDict to CSV file
+# The key are the headings for the CSV
+# The file will be overwritten
 def listDictCSV(myListDict, filePathName, keys):
     addKeys = True
     if (os.path.isfile(filePathName)):
         addKeys = False
     try:
-        f = open(filePathName, 'a')
+        f = open(filePathName, 'w')
     except Exception as err:
-        print("Failure opening file in append mode - ERROR: {0}".format(err))
+        print("Failure opening file in write mode - ERROR: {0}".format(err))
         print("Be sure {0} isn't open in another program.".format(filePathName))
     else:
         if addKeys:
